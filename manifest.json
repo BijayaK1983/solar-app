@@ -1,0 +1,17 @@
+{
+  "name": "SolarOps — Installation Business Manager",
+  "short_name": "SolarOps",
+  "description": "Manage your solar installation business: customer pipeline, task assignment, teams, inventory and crew payments.",
+  "start_url": "./solar_business_app.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f7f9",
+  "theme_color": "#0f2a3f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

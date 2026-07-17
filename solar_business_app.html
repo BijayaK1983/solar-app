@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolarOps — Installation Business Manager</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f2a3f">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --navy:#0f2a3f;
+    --navy-light:#16405d;
+    --orange:#f5941f;
+    --orange-dark:#d97b0a;
+    --blue:#2e8bc0;
+    --bg:#f4f7f9;
+    --card:#ffffff;
+    --border:#e1e7ea;
+    --text:#1c2b33;
+    --muted:#6b7c85;
+    --green:#2e9e5b;
+    --red:#d94848;
+    --amber:#e0a500;
+    --purple:#7b4fd1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  .app{display:flex;min-height:100vh;}
+  .sidebar{
+    width:225px;
+    background:linear-gradient(180deg,var(--navy),#0a1d2c);
+    color:#fff;
+    padding:24px 0;
+    flex-shrink:0;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    padding:0 20px 20px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.12);
+    margin-bottom:16px;
+  }
+  .brand-icon{
+    width:34px;height:34px;border-radius:8px;
+    background:var(--orange);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+  }
+  .brand-name{font-weight:700;font-size:16px;letter-spacing:0.3px;}
+  .brand-sub{font-size:11px;color:#9db3c2;margin-top:1px;}
+  nav.tabs{display:flex;flex-direction:column;gap:2px;padding:0 10px;}
+  nav.tabs button{
+    display:flex;align-items:center;gap:10px;
+    background:none;border:none;
+    color:#c7d6de;
+    padding:11px 14px;
+    border-radius:8px;
+    font-size:14px;
+    text-align:left;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+    width:100%;
+  }
+  nav.tabs button .ico{font-size:16px;width:20px;text-align:center;}
+  nav.tabs button:hover{background:rgba(255,255,255,0.07);color:#fff;}
+  nav.tabs button.active{background:var(--orange);color:#fff;font-weight:600;}
+  .main{flex:1;padding:28px 34px;max-width:1300px;}
+  .page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;gap:12px;flex-wrap:wrap;}
+  .page-header h1{font-size:22px;margin:0 0 4px 0;}
+  .page-header p{margin:0;color:var(--muted);font-size:13px;}
+  .btn{
+    background:var(--orange);color:#fff;border:none;
+    padding:9px 16px;border-radius:7px;font-size:13.5px;font-weight:600;
+    cursor:pointer;transition:background .15s;white-space:nowrap;
+  }
+  .btn:hover{background:var(--orange-dark);}
+  .btn.secondary{background:var(--navy);}
+  .btn.secondary:hover{background:var(--navy-light);}
+  .btn.small{padding:5px 10px;font-size:12px;}
+  .btn.danger{background:var(--red);}
+  .btn.outline{background:none;border:1px solid var(--border);color:var(--text);}
+  .btn.outline:hover{background:#eef1f3;}
+
+  .grid{display:grid;gap:16px;}
+  .grid.stats{grid-template-columns:repeat(4,1fr);margin-bottom:22px;}
+  .grid.two{grid-template-columns:1.4fr 1fr;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+  }
+  .stat-card .label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+  .stat-card .value{font-size:24px;font-weight:700;margin-top:6px;}
+  .stat-card .sub{font-size:12px;color:var(--muted);margin-top:4px;}
+  .card h2{font-size:15px;margin:0 0 14px 0;}
+  .card h3{font-size:13.5px;margin:0 0 10px 0;color:var(--navy);}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{
+    text-align:left;color:var(--muted);font-weight:600;font-size:11px;
+    text-transform:uppercase;letter-spacing:.3px;
+    padding:8px 10px;border-bottom:1px solid var(--border);
+  }
+  td{padding:10px 10px;border-bottom:1px solid #eef1f3;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#fafcfd;}
+
+  .badge{
+    display:inline-block;padding:3px 10px;border-radius:20px;
+    font-size:11px;font-weight:600;white-space:nowrap;
+  }
+  .badge.s0{background:#e5f0fb;color:var(--blue);}
+  .badge.s1{background:#e5f0fb;color:var(--blue);}
+  .badge.s2{background:#eef4fb;color:#3a7bb8;}
+  .badge.s3{background:#f0e8fd;color:var(--purple);}
+  .badge.s4{background:#f0e8fd;color:var(--purple);}
+  .badge.s5{background:#fff3e0;color:var(--amber);}
+  .badge.s6{background:#fff3e0;color:var(--amber);}
+  .badge.s7{background:#fdeee0;color:var(--orange-dark);}
+  .badge.s8{background:#fdeee0;color:var(--orange-dark);}
+  .badge.s9{background:#e3f2f7;color:#1d7a94;}
+  .badge.s10{background:#e3f7ea;color:var(--green);}
+  .badge.ok{background:#e3f7ea;color:var(--green);}
+  .badge.low{background:#fbe7e7;color:var(--red);}
+  .badge.pending{background:#fff3e0;color:var(--amber);}
+  .badge.paid{background:#e3f7ea;color:var(--green);}
+
+  .progress-track{display:flex;gap:2px;align-items:center;}
+  .dot{
+    width:14px;height:14px;border-radius:50%;
+    background:#e1e7ea;border:none;cursor:pointer;flex-shrink:0;
+    transition:background .15s;
+  }
+  .dot.current{box-shadow:0 0 0 3px rgba(15,42,63,0.22);}
+  .progress-label{font-size:11.5px;color:var(--muted);margin-top:5px;}
+
+  .legend-list{list-style:none;padding:0;margin:0;}
+  .legend-list li{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12.5px;}
+  .legend-swatch{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(15,42,63,0.45);
+    display:none;align-items:center;justify-content:center;z-index:50;
+    overflow-y:auto;padding:30px 0;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:#fff;border-radius:14px;padding:24px 26px;width:560px;max-width:92vw;
+    max-height:88vh;overflow-y:auto;
+  }
+  .modal.wide{width:680px;}
+  .modal h2{margin-top:0;font-size:17px;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:5px;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;
+    font-size:13.5px;font-family:inherit;
+  }
+  .field.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .field.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:3px;}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .search{
+    padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;width:220px;
+  }
+  .empty{color:var(--muted);font-size:13px;padding:20px 0;text-align:center;}
+  .icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;}
+  .icon-btn:hover{color:var(--red);}
+  .low-flag{color:var(--red);font-weight:700;}
+  .funnel-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px;}
+  .funnel-row .fname{width:170px;color:var(--text);flex-shrink:0;}
+  .funnel-bar-track{flex:1;background:#eef1f3;border-radius:6px;height:14px;overflow:hidden;}
+  .funnel-bar-fill{background:var(--orange);height:100%;border-radius:6px;}
+  .funnel-count{width:26px;text-align:right;font-weight:600;flex-shrink:0;}
+  .timeline{list-style:none;padding:0;margin:0;}
+  .timeline li{
+    display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0f2f4;font-size:13px;
+  }
+  .timeline li:last-child{border-bottom:none;}
+  .timeline .tdot{width:9px;height:9px;border-radius:50%;background:#d5dbe0;margin-top:4px;flex-shrink:0;}
+  .timeline .tdot.done{background:var(--green);}
+  .timeline .tdate{color:var(--muted);font-size:11.5px;}
+  .pill-select{display:flex;gap:6px;flex-wrap:wrap;}
+  .pill-select label{
+    border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;
+  }
+  .pill-select input{width:auto;display:inline;margin-right:6px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">☀️</div>
+      <div>
+        <div class="brand-name">SolarOps</div>
+        <div class="brand-sub">Installation Manager</div>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="dashboard"><span class="ico">📊</span> Dashboard</button>
+      <button class="tab-btn" data-tab="pipeline"><span class="ico">🔄</span> Customer Pipeline</button>
+      <button class="tab-btn" data-tab="assign"><span class="ico">🗓️</span> Task Assignment</button>
+      <button class="tab-btn" data-tab="teams"><span class="ico">🧑‍🔧</span> Teams</button>
+      <button class="tab-btn" data-tab="inventory"><span class="ico">📦</span> Inventory</button>
+      <button class="tab-btn" data-tab="crew"><span class="ico">👷</span> Crew &amp; Payments</button>
+      <button class="tab-btn" data-tab="settings"><span class="ico">⚙️</span> Settings</button>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="page">
+      <div class="page-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Overview of your solar installation business</p>
+        </div>
+      </div>
+      <div class="grid stats" id="statCards"></div>
+      <div class="grid two">
+        <div class="card">
+          <h2>Customers by Stage</h2>
+          <div id="funnelChart"></div>
+        </div>
+        <div class="card">
+          <h2>Needs Attention</h2>
+          <ul class="timeline" id="attentionList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIPELINE -->
+    <section id="pipeline" class="page" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1>Customer Pipeline</h1>
+          <p>Lead → Documents → Application → Approval → Work Order → Payment → Installation → Inspection → Grid Connected</p>
+        </div>
+        <button class="btn" onclick="openCustomerModal()">+ Add Customer</button>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 230px;align-items:start;">
+        <div class="card">
+          <div class="toolbar">
+            <input class="search" id="custSearch" placeholder="Search by name or city..." oninput="renderPipeline()">
+            <div style="display:flex;gap:8px;">
+              <select class="search" id="custStageFilter" style="width:190px;" onchange="renderPipeline()">
+                <option value="">All stages</option>
+              </select>
+              <select class="search" id="custSortBy" style="width:190px;" onchange="renderPipeline()">
+                <option value="stage">Sort: pipeline order</option>
+                <option value="priority">Sort: priority + wait time</option>
+              </select>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Customer</th><th>City</th><th>Category</th><th>Price</th><th>Priority</th><th>Stage</th><th>Installation</th><th></th></tr></thead>
+            <tbody id="custBody"></tbody>
+          </table>
+          <div class="empty" id="custEmpty" style="display:none;">No customers yet. Add your first one.</div>
+        </div>
+        <div class="card">
+          <h2>Stage Legend</h2>
+          <ul class="legend-list" id="stageLegend"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TASK ASSIGNMENT -->
+    <section id="assign" class="page" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1>Task Assignment</h1>
+          <p>Assign a customer's installation to a team and date, then track progress through to completion.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <h2 id="assignFormTitle">New Assignment</h2>
+        <div class="field row3">
+          <div><label>Customer</label>
+            <select id="assignCustomer" onchange="onAssignIdentifierChange('assignCustomer')"></select>
+          </div>
+          <div><label>Application No.</label>
+            <select id="assignAppNo" onchange="onAssignIdentifierChange('assignAppNo')"></select>
+          </div>
+          <div><label>Work Order No.</label>
+            <select id="assignWorkOrderNo" onchange="onAssignIdentifierChange('assignWorkOrderNo')"></select>
+          </div>
+        </div>
+        <div class="hint" style="margin:-6px 0 12px 0;">Select by customer, application no., or work order no. — the other two fill in automatically.</div>
+        <div class="field row2">
+          <div><label>Team</label>
+            <select id="assignTeam"></select>
+          </div>
+          <div><label>Installation Date</label>
+            <input id="assignDate" type="date">
+          </div>
+        </div>
+        <div class="field"><label>Notes</label><input id="assignNotes" placeholder="Optional notes for this installation"></div>
+        <div class="modal-actions" style="justify-content:flex-start;">
+          <button class="btn" onclick="saveAssignment()">Save Assignment</button>
+          <button class="btn outline" onclick="resetAssignForm()">Clear</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <input class="search" id="assignSearch" placeholder="Search by customer, team, city, application no. or work order no..." oninput="renderAssignments()">
+        </div>
+        <table>
+          <thead><tr><th>Customer</th><th>Application No.</th><th>Work Order No.</th><th>City</th><th>Team</th><th>Date</th><th>Progress</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="assignBody"></tbody>
+        </table>
+        <div class="empty" id="assignEmpty" style="display:none;">No installations assigned yet.</div>
+      </div>
+    </section>
+
+    <!-- TEAMS -->
+    <section id="teams" class="page" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1>Teams</h1>
+          <p>24 installation teams — 1 electrician + 1 helper each, covering a fixed zone. Edit names, phones and zones as you assign your 48 people.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <input class="search" id="teamSearch" placeholder="Search by team, member or zone..." oninput="renderTeams()">
+        </div>
+        <table>
+          <thead><tr><th>Team</th><th>Electrician</th><th>Helper</th><th>Zone</th><th>Assigned Installations</th><th></th></tr></thead>
+          <tbody id="teamsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section id="inventory" class="page" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1>Inventory &amp; Equipment</h1>
+          <p>Track panels, inverters and other equipment stock. Send your real itemised list and I'll load it in.</p>
+        </div>
+        <button class="btn" onclick="openInventoryModal()">+ Add Item</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Item</th><th>Category</th><th>In Stock</th><th>Reorder Level</th><th>Unit Cost</th><th>Status</th><th></th></tr></thead>
+          <tbody id="invBody"></tbody>
+        </table>
+        <div class="empty" id="invEmpty" style="display:none;">No inventory items yet.</div>
+      </div>
+    </section>
+
+    <!-- CREW -->
+    <section id="crew" class="page" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1>Crew &amp; Payments</h1>
+          <p>Crew details and salary / payment tracking. Send crew list and pay details and I'll load it in.</p>
+        </div>
+        <button class="btn" onclick="openCrewModal()">+ Add Crew Member</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Name</th><th>Role</th><th>Contact</th><th>Pay Type</th><th>Rate</th><th>Assigned To</th><th>Payment Status</th><th></th></tr></thead>
+          <tbody id="crewBody"></tbody>
+        </table>
+        <div class="empty" id="crewEmpty" style="display:none;">No crew members yet.</div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="page" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1>Settings</h1>
+          <p>Base pricing for your 3 system categories (₹). Used to auto-fill new customer quotes.</p>
+        </div>
+      </div>
+      <div class="card" style="max-width:480px;">
+        <h2>Category Pricing</h2>
+        <div class="field"><label>1 KW System Price (₹)</label><input id="price1kw" type="number"></div>
+        <div class="field"><label>3 KW System Price (₹)</label><input id="price3kw" type="number"></div>
+        <div class="field"><label>5 KW System Price (₹)</label><input id="price5kw" type="number"></div>
+        <button class="btn" onclick="saveSettings()">Save Prices</button>
+        <div class="hint" id="settingsSaved" style="display:none;color:var(--green);margin-top:8px;">Saved.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- CUSTOMER MODAL (Add / Edit) -->
+<div class="overlay" id="custOverlay">
+  <div class="modal wide">
+    <h2 id="custModalTitle">Add Customer</h2>
+
+    <div class="field row2">
+      <div><label>Full Name</label><input id="custName" placeholder="Ramesh Kumar"></div>
+      <div><label>Phone</label><input id="custPhone" placeholder="+91 98765 43210"></div>
+    </div>
+    <div class="field row2">
+      <div><label>Email</label><input id="custEmail" placeholder="ramesh@email.com"></div>
+      <div><label>City / Address</label><input id="custCity" placeholder="Bengaluru"></div>
+    </div>
+
+    <div class="field">
+      <label>System Category</label>
+      <div class="pill-select">
+        <label><input type="radio" name="custCategory" value="1KW" onchange="applyCategoryPrice()"> 1 KW</label>
+        <label><input type="radio" name="custCategory" value="3KW" onchange="applyCategoryPrice()"> 3 KW</label>
+        <label><input type="radio" name="custCategory" value="5KW" onchange="applyCategoryPrice()"> 5 KW</label>
+      </div>
+    </div>
+    <div class="field"><label>Agreed Price (₹)</label><input id="custPrice" type="number"></div>
+
+    <div class="field row2">
+      <div><label>Application No. (portal)</label><input id="custAppNo" placeholder="e.g. PMSGY-2026-XXXX"></div>
+      <div><label>Work Order No.</label><input id="custWorkOrderNo" placeholder="e.g. WO-1042"></div>
+    </div>
+    <div class="field">
+      <label>Priority</label>
+      <select id="custPriority">
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <div class="hint">Team, installation date and progress are managed in the Task Assignment tab.</div>
+    </div>
+
+    <div class="field"><label>Notes</label><textarea id="custNotes" rows="2" placeholder="Optional notes"></textarea></div>
+
+    <div class="card" id="stageEditorWrap" style="background:#f8fafb;padding:14px 16px;display:none;">
+      <h3 style="margin-bottom:8px;">Pipeline Stage</h3>
+      <div class="field"><label>Current Stage</label>
+        <select id="custStageSelect"></select>
+      </div>
+      <div class="hint">Moving to a new stage records today's date in the timeline below.</div>
+      <ul class="timeline" id="custTimeline" style="margin-top:10px;"></ul>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn outline" onclick="closeModal('custOverlay')">Cancel</button>
+      <button class="btn" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM MODAL -->
+<div class="overlay" id="teamOverlay">
+  <div class="modal">
+    <h2 id="teamModalTitle">Edit Team</h2>
+    <div class="field"><label>Team Name</label><input id="teamName" placeholder="Team 1"></div>
+    <div class="field"><label>Zone / City Coverage</label><input id="teamZone" placeholder="Bengaluru"></div>
+    <div class="field row2">
+      <div><label>Electrician Name</label><input id="teamElectrician" placeholder="e.g. Karthik R"></div>
+      <div><label>Electrician Phone</label><input id="teamElectricianPhone" placeholder="+91 90000 00000"></div>
+    </div>
+    <div class="field row2">
+      <div><label>Helper Name</label><input id="teamHelper" placeholder="e.g. Basavaraj N"></div>
+      <div><label>Helper Phone</label><input id="teamHelperPhone" placeholder="+91 90000 00000"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn outline" onclick="closeModal('teamOverlay')">Cancel</button>
+      <button class="btn" onclick="saveTeam()">Save Team</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY MODAL -->
+<div class="overlay" id="invOverlay">
+  <div class="modal">
+    <h2>Add Inventory Item</h2>
+    <div class="field"><label>Item Name</label><input id="invName" placeholder="450W Solar Panel"></div>
+    <div class="field"><label>Category</label>
+      <select id="invCategory">
+        <option value="Panel">Panel</option>
+        <option value="Inverter">Inverter</option>
+        <option value="Mounting">Mounting Hardware</option>
+        <option value="Battery">Battery</option>
+        <option value="Cable">Cable / Wiring</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field row2">
+      <div><label>In Stock</label><input id="invStock" type="number" placeholder="20"></div>
+      <div><label>Reorder Level</label><input id="invReorder" type="number" placeholder="5"></div>
+    </div>
+    <div class="field"><label>Unit Cost (₹)</label><input id="invCost" type="number" placeholder="15000"></div>
+    <div class="modal-actions">
+      <button class="btn outline" onclick="closeModal('invOverlay')">Cancel</button>
+      <button class="btn" onclick="saveInventory()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREW MODAL -->
+<div class="overlay" id="crewOverlay">
+  <div class="modal">
+    <h2>Add Crew Member</h2>
+    <div class="field"><label>Name</label><input id="crewName" placeholder="Suresh Patil"></div>
+    <div class="field row2">
+      <div><label>Role</label><input id="crewRole" placeholder="Installer / Electrician"></div>
+      <div><label>Contact</label><input id="crewPhone" placeholder="+91 90000 00000"></div>
+    </div>
+    <div class="field row2">
+      <div><label>Pay Type</label>
+        <select id="crewPayType">
+          <option value="Daily Wage">Daily Wage</option>
+          <option value="Monthly Salary">Monthly Salary</option>
+          <option value="Per Job">Per Job</option>
+        </select>
+      </div>
+      <div><label>Rate (₹)</label><input id="crewRate" type="number" placeholder="800"></div>
+    </div>
+    <div class="field"><label>Assigned To (customer / job)</label><input id="crewAssigned" placeholder="Optional"></div>
+    <div class="field"><label>Payment Status</label>
+      <select id="crewPayStatus">
+        <option value="pending">Pending</option>
+        <option value="paid">Paid</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn outline" onclick="closeModal('crewOverlay')">Cancel</button>
+      <button class="btn" onclick="saveCrew()">Save Crew Member</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Stages ---------- */
+const STAGES = [
+  {key:'lead', label:'Lead / Interested'},
+  {key:'quoted', label:'Price Quoted'},
+  {key:'agreed', label:'Customer Agreed'},
+  {key:'docs', label:'Documents Collected'},
+  {key:'applied', label:'Application Submitted'},
+  {key:'approved', label:'Application Approved'},
+  {key:'workorder', label:'Work Order Created'},
+  {key:'paid', label:'Payment Received'},
+  {key:'installed', label:'Installation Completed'},
+  {key:'inspection', label:'Inspection Requested'},
+  {key:'connected', label:'Grid Connected'}
+];
+const STAGE_COLORS = [
+  '#64748b', // Lead / Interested - slate
+  '#3b82f6', // Price Quoted - blue
+  '#06b6d4', // Customer Agreed - cyan
+  '#14b8a6', // Documents Collected - teal
+  '#8b5cf6', // Application Submitted - violet
+  '#a855f7', // Application Approved - purple
+  '#ec4899', // Work Order Created - pink
+  '#f43f5e', // Payment Received - rose
+  '#f97316', // Installation Completed - orange
+  '#eab308', // Inspection Requested - yellow
+  '#22c55e'  // Grid Connected - green
+];
+
+/* ---------- Settings ---------- */
+let categoryPrices = {'1KW':65000, '3KW':185000, '5KW':295000};
+
+/* ---------- In-memory demo data ---------- */
+let customers = [
+  {id:1, name:"Ramesh Kumar", phone:"+91 98765 43210", email:"ramesh@email.com", city:"Bengaluru",
+   category:"3KW", price:185000, stageIndex:7, priority:"High",
+   stageDates:{lead:"2026-06-18", quoted:"2026-06-19", agreed:"2026-06-20", docs:"2026-06-22", applied:"2026-06-25", approved:"2026-07-02", workorder:"2026-07-05", paid:"2026-07-08"},
+   appNo:"PMSGY-2026-4471", workOrderNo:"WO-1042", notes:"Prefers weekend installation."},
+  {id:2, name:"Priya Nair", phone:"+91 90000 11223", email:"priya.n@email.com", city:"Kochi",
+   category:"1KW", price:65000, stageIndex:3, priority:"Medium",
+   stageDates:{lead:"2026-07-01", quoted:"2026-07-02", agreed:"2026-07-03", docs:"2026-07-10"},
+   appNo:"", workOrderNo:"", notes:""},
+  {id:3, name:"Arjun Reddy", phone:"+91 98111 22334", email:"arjun.r@email.com", city:"Hyderabad",
+   category:"5KW", price:295000, stageIndex:10, priority:"Medium",
+   stageDates:{lead:"2026-05-10", quoted:"2026-05-11", agreed:"2026-05-13", docs:"2026-05-16", applied:"2026-05-20", approved:"2026-05-28", workorder:"2026-06-02", paid:"2026-06-05", installed:"2026-06-15", inspection:"2026-06-20", connected:"2026-06-28"},
+   appNo:"PMSGY-2026-3390", workOrderNo:"WO-0998", notes:"Grid connected successfully."},
+  {id:4, name:"Sneha Joshi", phone:"+91 99887 65544", email:"sneha.j@email.com", city:"Pune",
+   category:"3KW", price:185000, stageIndex:5, priority:"High",
+   stageDates:{lead:"2026-06-30", quoted:"2026-07-01", agreed:"2026-07-02", docs:"2026-07-05", applied:"2026-07-08", approved:"2026-07-14"},
+   appNo:"PMSGY-2026-4890", workOrderNo:"", notes:"Waiting on work order."}
+];
+let inventory = [
+  {id:1, name:"450W Solar Panel", category:"Panel", stock:34, reorder:15, cost:15000},
+  {id:2, name:"3kW Grid-tie Inverter", category:"Inverter", stock:4, reorder:5, cost:28000},
+  {id:3, name:"Roof Mounting Rail (3m)", category:"Mounting", stock:60, reorder:20, cost:1800},
+  {id:4, name:"5kW Grid-tie Inverter", category:"Inverter", stock:2, reorder:3, cost:42000},
+  {id:5, name:"PV Cable (100m roll)", category:"Cable", stock:12, reorder:6, cost:6500}
+];
+let crewList = [
+  {id:1, name:"Suresh Patil", role:"Lead Installer", phone:"+91 90000 00001", payType:"Monthly Salary", rate:25000, assigned:"Crew A", payStatus:"paid"},
+  {id:2, name:"Vinod Shetty", role:"Electrician", phone:"+91 90000 00002", payType:"Per Job", rate:3000, assigned:"Crew A", payStatus:"pending"},
+  {id:3, name:"Manoj Das", role:"Installer", phone:"+91 90000 00003", payType:"Daily Wage", rate:800, assigned:"Crew B", payStatus:"paid"}
+];
+
+/* ---------- Teams: 24 teams, each 1 electrician + 1 helper ---------- */
+// Placeholder roster - edit names/phones in the Teams tab as you hire/assign real people.
+const ZONE_PATTERN = ["Bengaluru","Bengaluru","Chennai","Chennai","Hyderabad","Hyderabad","Kochi","Kochi",
+  "Pune","Pune","Mumbai","Mumbai","Coimbatore","Coimbatore","Mysuru","Mysuru",
+  "Madurai","Madurai","Trivandrum","Trivandrum","Vijayawada","Vijayawada","Visakhapatnam","Visakhapatnam"];
+let teams = ZONE_PATTERN.map((zone,i)=>({
+  id: i+1,
+  name: `Team ${i+1}`,
+  electrician: "", electricianPhone: "",
+  helper: "", helperPhone: "",
+  zone
+}));
+// Demo assignments so the priority/location matching has something to show.
+teams[0].electrician="Karthik R"; teams[0].electricianPhone="+91 90000 10001";
+teams[0].helper="Basavaraj N"; teams[0].helperPhone="+91 90000 10002";
+teams[4].electrician="Naveen K"; teams[4].electricianPhone="+91 90000 10009";
+teams[4].helper="Ravi Teja"; teams[4].helperPhone="+91 90000 10010";
+
+/* ---------- Installation assignments: customer + team + date + progress ---------- */
+let assignments = [
+  {id:1, customerId:1, teamId:1, date:"2026-07-24", status:"Scheduled", notes:"Prefers weekend installation."},
+  {id:2, customerId:3, teamId:5, date:"2026-06-15", status:"Completed", notes:""}
+];
+
+let nextId = {cust:5, inv:6, crew:4, team:25, assign:3};
+let editingCustomerId = null;
+let editingTeamId = null;
+
+/* ---------- Persistence (localStorage) ---------- */
+const STORAGE_KEY = 'solarops_data_v1';
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      customers, inventory, crewList, teams, assignments, categoryPrices, nextId
+    }));
+  }catch(e){ console.error('Failed to save data to localStorage', e); }
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(data.customers) customers = data.customers;
+    if(data.inventory) inventory = data.inventory;
+    if(data.crewList) crewList = data.crewList;
+    if(data.teams) teams = data.teams;
+    if(data.assignments) assignments = data.assignments;
+    if(data.categoryPrices) categoryPrices = data.categoryPrices;
+    if(data.nextId) nextId = data.nextId;
+  }catch(e){ console.error('Failed to load saved data, using defaults', e); }
+}
+loadState();
+
+/* ---------- Formatting ---------- */
+function fmtMoney(n){
+  return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(n||0);
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+/* ---------- Team / Assignment helpers ---------- */
+function teamById(id){ return teams.find(t=>t.id===Number(id)); }
+function assignmentForCustomer(custId){ return assignments.find(a=>a.customerId===custId); }
+function teamAssignments(teamId){ return assignments.filter(a=>a.teamId===teamId); }
+// "Active" workload = assignments not yet completed (Scheduled / In Progress).
+function teamWorkload(id, excludeAssignId){
+  return assignments.filter(a=>a.teamId===id && a.id!==excludeAssignId && a.status!=='Completed').length;
+}
+function cityMatch(team, city){
+  if(!city || !team.zone) return false;
+  const a = team.zone.toLowerCase(), b = city.toLowerCase();
+  return a.includes(b) || b.includes(a);
+}
+function teamMemberSummary(team){
+  const e = team.electrician || 'Electrician TBD';
+  const h = team.helper || 'Helper TBD';
+  return `${e} + ${h}`;
+}
+function buildTeamOptions(city, selectedId, excludeAssignId){
+  const matched = teams.filter(t=>cityMatch(t, city)).sort((a,b)=>teamWorkload(a.id,excludeAssignId)-teamWorkload(b.id,excludeAssignId));
+  const rest = teams.filter(t=>!cityMatch(t, city)).sort((a,b)=>teamWorkload(a.id,excludeAssignId)-teamWorkload(b.id,excludeAssignId));
+  let html = `<option value="">Unassigned</option>`;
+  if(matched.length){
+    html += matched.map(t=>`<option value="${t.id}" ${Number(selectedId)===t.id?'selected':''}>★ ${t.name} — ${t.zone} (${teamWorkload(t.id,excludeAssignId)} active)</option>`).join('');
+  }
+  html += rest.map(t=>`<option value="${t.id}" ${Number(selectedId)===t.id?'selected':''}>${t.name} — ${t.zone||'no zone'} (${teamWorkload(t.id,excludeAssignId)} active)</option>`).join('');
+  return html;
+}
+
+/* ---------- Tab navigation ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+    document.getElementById(btn.dataset.tab).style.display='block';
+    if(btn.dataset.tab==='dashboard') renderDashboard();
+    if(btn.dataset.tab==='teams') renderTeams();
+    if(btn.dataset.tab==='assign'){ populateAssignCustomerSelect(); renderAssignments(); }
+  });
+});
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+/* ---------- CUSTOMER PIPELINE ---------- */
+function populateStageFilter(){
+  const sel = document.getElementById('custStageFilter');
+  sel.innerHTML = '<option value="">All stages</option>' +
+    STAGES.map((s,i)=>`<option value="${i}">${s.label}</option>`).join('');
+}
+function populateStageSelect(){
+  const sel = document.getElementById('custStageSelect');
+  sel.innerHTML = STAGES.map((s,i)=>`<option value="${i}">${i+1}. ${s.label}</option>`).join('');
+}
+function applyCategoryPrice(){
+  const cat = document.querySelector('input[name="custCategory"]:checked');
+  if(cat) document.getElementById('custPrice').value = categoryPrices[cat.value] || '';
+}
+function openCustomerModal(existing){
+  editingCustomerId = existing ? existing.id : null;
+  document.getElementById('custModalTitle').textContent = existing? 'Edit Customer' : 'Add Customer';
+  document.getElementById('custName').value = existing?.name || '';
+  document.getElementById('custPhone').value = existing?.phone || '';
+  document.getElementById('custEmail').value = existing?.email || '';
+  document.getElementById('custCity').value = existing?.city || '';
+  document.querySelectorAll('input[name="custCategory"]').forEach(r=>{
+    r.checked = existing ? r.value===existing.category : r.value==='1KW';
+  });
+  document.getElementById('custPrice').value = existing?.price ?? categoryPrices['1KW'];
+  document.getElementById('custAppNo').value = existing?.appNo || '';
+  document.getElementById('custWorkOrderNo').value = existing?.workOrderNo || '';
+  document.getElementById('custPriority').value = existing?.priority || 'Medium';
+  document.getElementById('custNotes').value = existing?.notes || '';
+
+  const wrap = document.getElementById('stageEditorWrap');
+  if(existing){
+    wrap.style.display='block';
+    populateStageSelect();
+    document.getElementById('custStageSelect').value = existing.stageIndex;
+    renderCustTimeline(existing);
+  } else {
+    wrap.style.display='none';
+  }
+  document.getElementById('custOverlay').classList.add('open');
+}
+function renderCustTimeline(cust){
+  document.getElementById('custTimeline').innerHTML = STAGES.map((s,i)=>{
+    const date = cust.stageDates[s.key];
+    const done = i <= cust.stageIndex;
+    return `<li><span class="tdot ${done?'done':''}"></span>
+      <span>${s.label}${date?` <span class="tdate">— ${date}</span>`:''}</span></li>`;
+  }).join('');
+}
+function saveCustomer(){
+  const name = document.getElementById('custName').value.trim();
+  if(!name){ alert('Please enter a name.'); return; }
+  const catInput = document.querySelector('input[name="custCategory"]:checked');
+  const category = catInput ? catInput.value : '1KW';
+  const price = Number(document.getElementById('custPrice').value)||0;
+
+  if(editingCustomerId){
+    const c = customers.find(x=>x.id===editingCustomerId);
+    c.name=name; c.phone=document.getElementById('custPhone').value;
+    c.email=document.getElementById('custEmail').value;
+    c.city=document.getElementById('custCity').value;
+    c.category=category; c.price=price;
+    c.appNo=document.getElementById('custAppNo').value;
+    c.workOrderNo=document.getElementById('custWorkOrderNo').value;
+    c.priority=document.getElementById('custPriority').value;
+    c.notes=document.getElementById('custNotes').value;
+    const newStage = Number(document.getElementById('custStageSelect').value);
+    if(newStage !== c.stageIndex){
+      c.stageIndex = newStage;
+      const key = STAGES[newStage].key;
+      if(!c.stageDates[key]) c.stageDates[key] = todayStr();
+    }
+  } else {
+    const stageDates = {}; stageDates[STAGES[0].key] = todayStr();
+    customers.push({
+      id: nextId.cust++, name, phone:document.getElementById('custPhone').value,
+      email:document.getElementById('custEmail').value, city:document.getElementById('custCity').value,
+      category, price, stageIndex:0, stageDates,
+      priority:document.getElementById('custPriority').value,
+      appNo:document.getElementById('custAppNo').value, workOrderNo:document.getElementById('custWorkOrderNo').value,
+      notes:document.getElementById('custNotes').value
+    });
+  }
+  closeModal('custOverlay');
+  saveState();
+  renderPipeline(); renderDashboard();
+}
+function deleteCustomer(id){
+  if(!confirm('Delete this customer record?')) return;
+  customers = customers.filter(c=>c.id!==id);
+  assignments = assignments.filter(a=>a.customerId!==id);
+  saveState();
+  renderPipeline(); renderDashboard(); renderTeams(); renderAssignments();
+}
+function advanceStage(id){
+  const c = customers.find(x=>x.id===id);
+  if(c.stageIndex >= STAGES.length-1) return;
+  c.stageIndex++;
+  const key = STAGES[c.stageIndex].key;
+  if(!c.stageDates[key]) c.stageDates[key] = todayStr();
+  saveState();
+  renderPipeline(); renderDashboard();
+}
+const PRIORITY_RANK = {High:0, Medium:1, Low:2};
+function renderPipeline(){
+  populateStageFilter();
+  const search = (document.getElementById('custSearch')?.value||'').toLowerCase();
+  const filter = document.getElementById('custStageFilter')?.value;
+  const sortBy = document.getElementById('custSortBy')?.value || 'stage';
+  const body = document.getElementById('custBody');
+  let rows = customers.filter(c=>{
+    const matchesSearch = c.name.toLowerCase().includes(search) || (c.city||'').toLowerCase().includes(search);
+    const matchesStage = filter==='' || filter===undefined || c.stageIndex===Number(filter);
+    return matchesSearch && matchesStage;
+  });
+  if(sortBy==='priority'){
+    rows = [...rows].sort((a,b)=>{
+      const pr = (PRIORITY_RANK[a.priority]??1) - (PRIORITY_RANK[b.priority]??1);
+      if(pr!==0) return pr;
+      const da = a.stageDates[STAGES[0].key] || '9999';
+      const db = b.stageDates[STAGES[0].key] || '9999';
+      return da.localeCompare(db); // oldest (longest waiting) first
+    });
+  }
+  body.innerHTML = rows.map(c=>{
+    const dots = STAGES.map((s,i)=>{
+      let cls='dot';
+      if(i === c.stageIndex) cls += ' current';
+      const bg = i <= c.stageIndex ? STAGE_COLORS[i] : '#e1e7ea';
+      return `<button class="${cls}" style="background:${bg};" title="${s.label}" onclick="event.stopPropagation();jumpStage(${c.id},${i})"></button>`;
+    }).join('');
+    const isLast = c.stageIndex >= STAGES.length-1;
+    const prio = c.priority || 'Medium';
+    const prioClass = prio==='High'?'low':(prio==='Medium'?'pending':'ok');
+    return `
+    <tr>
+      <td><strong>${c.name}</strong><div style="color:var(--muted);font-size:11.5px;">${c.phone||''}</div></td>
+      <td>${c.city||'—'}</td>
+      <td>${c.category}</td>
+      <td>${fmtMoney(c.price)}</td>
+      <td><span class="badge ${prioClass}" style="cursor:pointer" onclick="cyclePriority(${c.id})" title="Click to change">${prio}</span></td>
+      <td>
+        <div class="progress-track">${dots}</div>
+        <div class="progress-label">${STAGES[c.stageIndex].label}</div>
+      </td>
+      <td>${installationCellHtml(c)}</td>
+      <td style="white-space:nowrap;">
+        ${isLast? '' : `<button class="btn small secondary" onclick="advanceStage(${c.id})">Advance</button>`}
+        <button class="btn small outline" onclick='openCustomerModal(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Edit</button>
+        <button class="icon-btn" onclick="deleteCustomer(${c.id})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('custEmpty').style.display = rows.length? 'none':'block';
+  renderLegend();
+}
+function installationCellHtml(c){
+  const a = assignmentForCustomer(c.id);
+  if(!a){
+    return `<button class="btn small secondary" onclick="goAssign(${c.id})">Assign</button>`;
+  }
+  const t = teamById(a.teamId);
+  const statusClass = a.status==='Completed' ? 'ok' : (a.status==='In Progress' ? 'pending' : 's1');
+  return `
+    <div style="font-size:12.5px;"><strong>${t? t.name : 'Unknown team'}</strong></div>
+    <div style="color:var(--muted);font-size:11.5px;">${a.date || 'no date'}</div>
+    <div style="margin-top:2px;"><span class="badge ${statusClass}">${a.status}</span>
+      <button class="icon-btn" style="color:var(--blue)" title="Reschedule / change team" onclick="goAssign(${c.id})">✎</button>
+    </div>`;
+}
+function goAssign(custId){
+  document.querySelector('.tab-btn[data-tab="assign"]').click();
+  setTimeout(()=>openAssignForm(custId), 0);
+}
+function cyclePriority(id){
+  const order = ['High','Medium','Low'];
+  const c = customers.find(x=>x.id===id);
+  const idx = order.indexOf(c.priority || 'Medium');
+  c.priority = order[(idx+1)%order.length];
+  saveState();
+  renderPipeline(); renderDashboard();
+}
+function renderLegend(){
+  const el = document.getElementById('stageLegend');
+  if(!el) return;
+  el.innerHTML = STAGES.map((s,i)=>
+    `<li><span class="legend-swatch" style="background:${STAGE_COLORS[i]};"></span><span>${i+1}. ${s.label}</span></li>`
+  ).join('');
+}
+function jumpStage(id, idx){
+  const c = customers.find(x=>x.id===id);
+  c.stageIndex = idx;
+  const key = STAGES[idx].key;
+  if(!c.stageDates[key]) c.stageDates[key] = todayStr();
+  saveState();
+  renderPipeline(); renderDashboard();
+}
+
+/* ---------- TEAMS ---------- */
+function openTeamModal(team){
+  editingTeamId = team.id;
+  document.getElementById('teamModalTitle').textContent = `Edit ${team.name}`;
+  document.getElementById('teamName').value = team.name;
+  document.getElementById('teamZone').value = team.zone || '';
+  document.getElementById('teamElectrician').value = team.electrician || '';
+  document.getElementById('teamElectricianPhone').value = team.electricianPhone || '';
+  document.getElementById('teamHelper').value = team.helper || '';
+  document.getElementById('teamHelperPhone').value = team.helperPhone || '';
+  document.getElementById('teamOverlay').classList.add('open');
+}
+function saveTeam(){
+  const t = teamById(editingTeamId);
+  if(!t) return;
+  t.name = document.getElementById('teamName').value.trim() || t.name;
+  t.zone = document.getElementById('teamZone').value.trim();
+  t.electrician = document.getElementById('teamElectrician').value.trim();
+  t.electricianPhone = document.getElementById('teamElectricianPhone').value.trim();
+  t.helper = document.getElementById('teamHelper').value.trim();
+  t.helperPhone = document.getElementById('teamHelperPhone').value.trim();
+  closeModal('teamOverlay');
+  saveState();
+  renderTeams(); renderPipeline();
+}
+function renderTeams(){
+  const body = document.getElementById('teamsBody');
+  if(!body) return;
+  const search = (document.getElementById('teamSearch')?.value||'').toLowerCase();
+  const rows = teams.filter(t=>{
+    return t.name.toLowerCase().includes(search) || (t.zone||'').toLowerCase().includes(search) ||
+      (t.electrician||'').toLowerCase().includes(search) || (t.helper||'').toLowerCase().includes(search);
+  });
+  body.innerHTML = rows.map(t=>{
+    const load = teamWorkload(t.id);
+    const list = teamAssignments(t.id).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const listHtml = list.length
+      ? `<ul class="timeline" style="margin:0;">${list.map(a=>{
+          const cust = customers.find(c=>c.id===a.customerId);
+          const statusClass = a.status==='Completed' ? 'ok' : (a.status==='In Progress' ? 'pending' : 's1');
+          return `<li style="padding:4px 0;"><span class="tdot ${a.status==='Completed'?'done':''}"></span>
+            <span>${cust? cust.name : 'Unknown'} <span class="tdate">— ${a.date||'no date'}</span> <span class="badge ${statusClass}">${a.status}</span></span></li>`;
+        }).join('')}</ul>`
+      : `<span style="color:var(--muted);font-size:12px;">${load} active — no installations yet</span>`;
+    return `
+    <tr>
+      <td><strong>${t.name}</strong></td>
+      <td>${t.electrician || '<span style="color:var(--muted);">Unassigned</span>'}${t.electricianPhone?`<div style="color:var(--muted);font-size:11.5px;">${t.electricianPhone}</div>`:''}</td>
+      <td>${t.helper || '<span style="color:var(--muted);">Unassigned</span>'}${t.helperPhone?`<div style="color:var(--muted);font-size:11.5px;">${t.helperPhone}</div>`:''}</td>
+      <td>${t.zone || '—'}</td>
+      <td>${listHtml}</td>
+      <td><button class="btn small outline" onclick='openTeamModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---------- TASK ASSIGNMENT ---------- */
+let assignFormCustomerId = null;
+function populateAssignCustomerSelect(){
+  const custSel = document.getElementById('assignCustomer');
+  const appSel = document.getElementById('assignAppNo');
+  const woSel = document.getElementById('assignWorkOrderNo');
+  if(!custSel) return;
+  const current = assignFormCustomerId || custSel.value;
+  custSel.innerHTML = customers.map(c=>`<option value="${c.id}">${c.name} — ${c.city||'no city'} (${c.category})</option>`).join('');
+  appSel.innerHTML = customers.map(c=>`<option value="${c.id}">${c.appNo || '(no application no.)'} — ${c.name}</option>`).join('');
+  woSel.innerHTML = customers.map(c=>`<option value="${c.id}">${c.workOrderNo || '(no work order no.)'} — ${c.name}</option>`).join('');
+  if(current){
+    custSel.value = current;
+    appSel.value = current;
+    woSel.value = current;
+  }
+}
+function syncAssignIdentifierSelects(custId){
+  document.getElementById('assignCustomer').value = custId;
+  document.getElementById('assignAppNo').value = custId;
+  document.getElementById('assignWorkOrderNo').value = custId;
+}
+function loadAssignFormForCustomer(custId){
+  const c = customers.find(x=>x.id===custId);
+  const existing = assignmentForCustomer(custId);
+  document.getElementById('assignTeam').innerHTML = buildTeamOptions(c?.city, existing?.teamId, existing?.id);
+  document.getElementById('assignDate').value = existing?.date || '';
+  document.getElementById('assignNotes').value = existing?.notes || '';
+  document.getElementById('assignFormTitle').textContent = existing ? `Reschedule — ${c.name}` : `New Assignment — ${c ? c.name : ''}`;
+}
+function onAssignIdentifierChange(sourceId){
+  const custId = Number(document.getElementById(sourceId).value);
+  assignFormCustomerId = custId;
+  syncAssignIdentifierSelects(custId);
+  loadAssignFormForCustomer(custId);
+}
+function onAssignCustomerChange(){
+  const custId = Number(document.getElementById('assignCustomer').value);
+  syncAssignIdentifierSelects(custId);
+  loadAssignFormForCustomer(custId);
+}
+function openAssignForm(custId){
+  assignFormCustomerId = custId;
+  populateAssignCustomerSelect();
+  onAssignCustomerChange();
+}
+function resetAssignForm(){
+  assignFormCustomerId = null;
+  populateAssignCustomerSelect();
+  onAssignCustomerChange();
+}
+function saveAssignment(){
+  const custId = Number(document.getElementById('assignCustomer').value);
+  const teamId = document.getElementById('assignTeam').value ? Number(document.getElementById('assignTeam').value) : null;
+  const date = document.getElementById('assignDate').value;
+  const notes = document.getElementById('assignNotes').value;
+  if(!custId){ alert('Please select a customer.'); return; }
+  if(!teamId){ alert('Please select a team.'); return; }
+  let a = assignmentForCustomer(custId);
+  if(a){
+    a.teamId = teamId; a.date = date; a.notes = notes;
+  } else {
+    assignments.push({id: nextId.assign++, customerId:custId, teamId, date, status:'Scheduled', notes});
+  }
+  assignFormCustomerId = null;
+  saveState();
+  renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
+  resetAssignForm();
+}
+function deleteAssignment(id){
+  if(!confirm('Remove this installation assignment?')) return;
+  assignments = assignments.filter(a=>a.id!==id);
+  saveState();
+  renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
+}
+function cycleAssignmentStatus(id){
+  const order = ['Scheduled','In Progress','Completed'];
+  const a = assignments.find(x=>x.id===id);
+  const idx = order.indexOf(a.status);
+  a.status = order[(idx+1)%order.length];
+  // Keep the customer's pipeline stage in sync once installation is marked complete.
+  if(a.status==='Completed'){
+    const c = customers.find(x=>x.id===a.customerId);
+    const installedIdx = STAGES.findIndex(s=>s.key==='installed');
+    if(c && c.stageIndex < installedIdx){
+      c.stageIndex = installedIdx;
+      if(!c.stageDates.installed) c.stageDates.installed = a.date || todayStr();
+    }
+  }
+  saveState();
+  renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
+}
+function renderAssignments(){
+  const body = document.getElementById('assignBody');
+  if(!body) return;
+  const search = (document.getElementById('assignSearch')?.value||'').toLowerCase();
+  const rows = assignments.filter(a=>{
+    const c = customers.find(x=>x.id===a.customerId);
+    const t = teamById(a.teamId);
+    const hay = `${c?.name||''} ${c?.city||''} ${t?.name||''} ${c?.appNo||''} ${c?.workOrderNo||''}`.toLowerCase();
+    return hay.includes(search);
+  }).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  body.innerHTML = rows.map(a=>{
+    const c = customers.find(x=>x.id===a.customerId);
+    const t = teamById(a.teamId);
+    const statusClass = a.status==='Completed' ? 'ok' : (a.status==='In Progress' ? 'pending' : 's1');
+    return `
+    <tr>
+      <td><strong>${c? c.name : 'Unknown customer'}</strong></td>
+      <td>${c?.appNo || '—'}</td>
+      <td>${c?.workOrderNo || '—'}</td>
+      <td>${c? (c.city||'—') : '—'}</td>
+      <td>${t? t.name : 'Unknown team'}</td>
+      <td>${a.date || '—'}</td>
+      <td><span class="badge ${statusClass}" style="cursor:pointer" onclick="cycleAssignmentStatus(${a.id})" title="Click to advance">${a.status}</span></td>
+      <td style="color:var(--muted);font-size:12.5px;">${a.notes||'—'}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn small outline" onclick="openAssignForm(${a.customerId})">Edit</button>
+        <button class="icon-btn" onclick="deleteAssignment(${a.id})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('assignEmpty').style.display = rows.length? 'none':'block';
+}
+
+/* ---------- INVENTORY ---------- */
+function openInventoryModal(){
+  document.getElementById('invName').value='';
+  document.getElementById('invCategory').value='Panel';
+  document.getElementById('invStock').value='';
+  document.getElementById('invReorder').value='';
+  document.getElementById('invCost').value='';
+  document.getElementById('invOverlay').classList.add('open');
+}
+function saveInventory(){
+  const name = document.getElementById('invName').value.trim();
+  if(!name){ alert('Please enter an item name.'); return; }
+  inventory.push({
+    id: nextId.inv++, name,
+    category: document.getElementById('invCategory').value,
+    stock: Number(document.getElementById('invStock').value)||0,
+    reorder: Number(document.getElementById('invReorder').value)||0,
+    cost: Number(document.getElementById('invCost').value)||0
+  });
+  closeModal('invOverlay');
+  saveState();
+  renderInventory(); renderDashboard();
+}
+function deleteInv(id){
+  if(!confirm('Delete this item?')) return;
+  inventory = inventory.filter(i=>i.id!==id);
+  saveState();
+  renderInventory(); renderDashboard();
+}
+function adjustStock(id, delta){
+  const item = inventory.find(i=>i.id===id);
+  item.stock = Math.max(0, item.stock+delta);
+  saveState();
+  renderInventory(); renderDashboard();
+}
+function renderInventory(){
+  const body = document.getElementById('invBody');
+  body.innerHTML = inventory.map(i=>{
+    const low = i.stock <= i.reorder;
+    return `
+    <tr>
+      <td><strong>${i.name}</strong></td>
+      <td>${i.category}</td>
+      <td>
+        <button class="icon-btn" onclick="adjustStock(${i.id},-1)">−</button>
+        <span class="${low?'low-flag':''}">${i.stock}</span>
+        <button class="icon-btn" onclick="adjustStock(${i.id},1)" style="color:var(--green)">+</button>
+      </td>
+      <td>${i.reorder}</td>
+      <td>${fmtMoney(i.cost)}</td>
+      <td>${low? '<span class="badge low">Reorder</span>' : '<span class="badge ok">OK</span>'}</td>
+      <td><button class="icon-btn" onclick="deleteInv(${i.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('invEmpty').style.display = inventory.length? 'none':'block';
+}
+
+/* ---------- CREW ---------- */
+function openCrewModal(){
+  document.getElementById('crewName').value='';
+  document.getElementById('crewRole').value='';
+  document.getElementById('crewPhone').value='';
+  document.getElementById('crewPayType').value='Daily Wage';
+  document.getElementById('crewRate').value='';
+  document.getElementById('crewAssigned').value='';
+  document.getElementById('crewPayStatus').value='pending';
+  document.getElementById('crewOverlay').classList.add('open');
+}
+function saveCrew(){
+  const name = document.getElementById('crewName').value.trim();
+  if(!name){ alert('Please enter a name.'); return; }
+  crewList.push({
+    id: nextId.crew++, name,
+    role: document.getElementById('crewRole').value,
+    phone: document.getElementById('crewPhone').value,
+    payType: document.getElementById('crewPayType').value,
+    rate: Number(document.getElementById('crewRate').value)||0,
+    assigned: document.getElementById('crewAssigned').value,
+    payStatus: document.getElementById('crewPayStatus').value
+  });
+  closeModal('crewOverlay');
+  saveState();
+  renderCrew(); renderDashboard();
+}
+function deleteCrew(id){
+  if(!confirm('Delete this crew member?')) return;
+  crewList = crewList.filter(c=>c.id!==id);
+  saveState();
+  renderCrew();
+}
+function toggleCrewPay(id){
+  const c = crewList.find(x=>x.id===id);
+  c.payStatus = c.payStatus==='paid' ? 'pending' : 'paid';
+  saveState();
+  renderCrew(); renderDashboard();
+}
+function renderCrew(){
+  const body = document.getElementById('crewBody');
+  body.innerHTML = crewList.map(c=>`
+    <tr>
+      <td><strong>${c.name}</strong></td>
+      <td>${c.role||'—'}</td>
+      <td>${c.phone||'—'}</td>
+      <td>${c.payType}</td>
+      <td>${fmtMoney(c.rate)}</td>
+      <td>${c.assigned||'—'}</td>
+      <td><span class="badge ${c.payStatus}" style="cursor:pointer" onclick="toggleCrewPay(${c.id})">${c.payStatus==='paid'?'Paid':'Pending'}</span></td>
+      <td><button class="icon-btn" onclick="deleteCrew(${c.id})">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('crewEmpty').style.display = crewList.length? 'none':'block';
+}
+
+/* ---------- SETTINGS ---------- */
+function loadSettingsForm(){
+  document.getElementById('price1kw').value = categoryPrices['1KW'];
+  document.getElementById('price3kw').value = categoryPrices['3KW'];
+  document.getElementById('price5kw').value = categoryPrices['5KW'];
+}
+function saveSettings(){
+  categoryPrices['1KW'] = Number(document.getElementById('price1kw').value)||0;
+  categoryPrices['3KW'] = Number(document.getElementById('price3kw').value)||0;
+  categoryPrices['5KW'] = Number(document.getElementById('price5kw').value)||0;
+  saveState();
+  document.getElementById('settingsSaved').style.display='block';
+  setTimeout(()=>{ document.getElementById('settingsSaved').style.display='none'; }, 1500);
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDashboard(){
+  const total = customers.length;
+  const connected = customers.filter(c=>c.stageIndex===STAGES.length-1).length;
+  const pendingApproval = customers.filter(c=>c.stageIndex===4).length; // applied, awaiting approval
+  const pendingPayment = customers.filter(c=>c.stageIndex===6).length; // workorder created, awaiting payment
+  const revenueCollected = customers.filter(c=>c.stageIndex>=7).reduce((s,c)=>s+c.price,0);
+  const lowStockCount = inventory.filter(i=>i.stock<=i.reorder).length;
+  const pendingCrewPay = crewList.filter(c=>c.payStatus==='pending').length;
+
+  document.getElementById('statCards').innerHTML = `
+    <div class="card stat-card">
+      <div class="label">Total Customers</div>
+      <div class="value">${total}</div>
+      <div class="sub">${connected} grid-connected</div>
+    </div>
+    <div class="card stat-card">
+      <div class="label">Revenue Collected</div>
+      <div class="value">${fmtMoney(revenueCollected)}</div>
+      <div class="sub">From payments received onward</div>
+    </div>
+    <div class="card stat-card">
+      <div class="label">Awaiting Approval / Payment</div>
+      <div class="value">${pendingApproval + pendingPayment}</div>
+      <div class="sub">${pendingApproval} approval, ${pendingPayment} payment</div>
+    </div>
+    <div class="card stat-card">
+      <div class="label">Low Stock Items</div>
+      <div class="value" style="color:${lowStockCount? 'var(--red)':'var(--text)'}">${lowStockCount}</div>
+      <div class="sub">${pendingCrewPay} crew payment(s) pending</div>
+    </div>
+  `;
+
+  const maxCount = Math.max(1, ...STAGES.map((s,i)=>customers.filter(c=>c.stageIndex===i).length));
+  document.getElementById('funnelChart').innerHTML = STAGES.map((s,i)=>{
+    const count = customers.filter(c=>c.stageIndex===i).length;
+    const pct = Math.round((count/maxCount)*100);
+    return `<div class="funnel-row">
+      <div class="fname">${s.label}</div>
+      <div class="funnel-bar-track"><div class="funnel-bar-fill" style="width:${pct}%"></div></div>
+      <div class="funnel-count">${count}</div>
+    </div>`;
+  }).join('');
+
+  const attention = [];
+  customers.filter(c=>(c.priority||'Medium')==='High' && c.stageIndex>=6 && c.stageIndex<8 && !assignmentForCustomer(c.id))
+    .forEach(c=>attention.push(`<li><span class="tdot" style="background:var(--red)"></span><span><strong>${c.name}</strong> — High priority, ready for installation but no team assigned</span></li>`));
+  customers.filter(c=>c.stageIndex===4).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — application submitted, awaiting approval</span></li>`));
+  customers.filter(c=>c.stageIndex===6).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — work order ready, awaiting payment</span></li>`));
+  customers.filter(c=>c.stageIndex===9).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — inspection requested, follow up with electricity dept.</span></li>`));
+  inventory.filter(i=>i.stock<=i.reorder).forEach(i=>attention.push(`<li><span class="tdot" style="background:var(--red)"></span><span><strong>${i.name}</strong> — low stock (${i.stock} left)</span></li>`));
+  document.getElementById('attentionList').innerHTML = attention.length? attention.join('') : '<li class="empty">Nothing needs attention right now.</li>';
+}
+
+/* ---------- PWA install (offline support) ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+/* ---------- Init ---------- */
+loadSettingsForm();
+renderPipeline();
+renderTeams();
+populateAssignCustomerSelect();
+onAssignCustomerChange();
+renderAssignments();
+renderInventory();
+renderCrew();
+renderDashboard();
+</script>
+</body>
+</html>
