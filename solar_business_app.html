@@ -197,7 +197,22 @@
 </style>
 </head>
 <body>
-<div class="app">
+
+<div class="overlay open" id="loginScreen" style="position:fixed;background:var(--navy);z-index:100;">
+  <div class="modal" style="text-align:center;">
+    <div class="brand-icon" style="margin:0 auto 14px;">☀️</div>
+    <h2>SolarOps Login</h2>
+    <p class="hint" style="margin-bottom:16px;">Enter your team's shared password to access the shared data.</p>
+    <div class="field" style="text-align:left;">
+      <label>Team Password</label>
+      <input id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')handleLogin()">
+    </div>
+    <button class="btn" style="width:100%;" onclick="handleLogin()">Log In</button>
+    <div class="hint" id="loginError" style="display:none;color:var(--red);margin-top:10px;"></div>
+  </div>
+</div>
+
+<div class="app" style="display:none;">
 
   <aside class="sidebar">
     <div class="brand">
@@ -396,6 +411,19 @@
         <button class="btn" onclick="saveSettings()">Save Prices</button>
         <div class="hint" id="settingsSaved" style="display:none;color:var(--green);margin-top:8px;">Saved.</div>
       </div>
+      <div class="card" style="max-width:480px;margin-top:16px;">
+        <h2>This Device</h2>
+        <div class="field">
+          <label>Device Name</label>
+          <input id="deviceNameSetting" placeholder="e.g. Bijaya's Laptop">
+          <div class="hint">Shown as "last edited by" on records you change from this device/browser.</div>
+        </div>
+        <button class="btn" onclick="saveDeviceNameSetting()">Save Device Name</button>
+        <div class="hint" id="deviceNameSaved" style="display:none;color:var(--green);margin-top:8px;">Saved.</div>
+        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:16px;">
+          <button class="btn outline" onclick="handleLogout()">Log Out</button>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -538,7 +566,14 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* ---------- Supabase ---------- */
+const SUPABASE_URL = 'https://ddrvhfbcqobkscaanfqw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkcnZoZmJjcW9ia3NjYWFuZnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNzc5MTEsImV4cCI6MjA5OTg1MzkxMX0.r7MYLHGewukyG0pL78XMdUr1uaEfKeVtPGAcvFaTtlM';
+const SHARED_LOGIN_EMAIL = 'team@solarops.app';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 /* ---------- Stages ---------- */
 const STAGES = [
   {key:'lead', label:'Lead / Interested'},
@@ -570,90 +605,164 @@ const STAGE_COLORS = [
 /* ---------- Settings ---------- */
 let categoryPrices = {'1KW':65000, '3KW':185000, '5KW':295000};
 
-/* ---------- In-memory demo data ---------- */
-let customers = [
-  {id:1, name:"Ramesh Kumar", phone:"+91 98765 43210", email:"ramesh@email.com", city:"Bengaluru",
-   category:"3KW", price:185000, stageIndex:7, priority:"High",
-   stageDates:{lead:"2026-06-18", quoted:"2026-06-19", agreed:"2026-06-20", docs:"2026-06-22", applied:"2026-06-25", approved:"2026-07-02", workorder:"2026-07-05", paid:"2026-07-08"},
-   appNo:"PMSGY-2026-4471", workOrderNo:"WO-1042", notes:"Prefers weekend installation."},
-  {id:2, name:"Priya Nair", phone:"+91 90000 11223", email:"priya.n@email.com", city:"Kochi",
-   category:"1KW", price:65000, stageIndex:3, priority:"Medium",
-   stageDates:{lead:"2026-07-01", quoted:"2026-07-02", agreed:"2026-07-03", docs:"2026-07-10"},
-   appNo:"", workOrderNo:"", notes:""},
-  {id:3, name:"Arjun Reddy", phone:"+91 98111 22334", email:"arjun.r@email.com", city:"Hyderabad",
-   category:"5KW", price:295000, stageIndex:10, priority:"Medium",
-   stageDates:{lead:"2026-05-10", quoted:"2026-05-11", agreed:"2026-05-13", docs:"2026-05-16", applied:"2026-05-20", approved:"2026-05-28", workorder:"2026-06-02", paid:"2026-06-05", installed:"2026-06-15", inspection:"2026-06-20", connected:"2026-06-28"},
-   appNo:"PMSGY-2026-3390", workOrderNo:"WO-0998", notes:"Grid connected successfully."},
-  {id:4, name:"Sneha Joshi", phone:"+91 99887 65544", email:"sneha.j@email.com", city:"Pune",
-   category:"3KW", price:185000, stageIndex:5, priority:"High",
-   stageDates:{lead:"2026-06-30", quoted:"2026-07-01", agreed:"2026-07-02", docs:"2026-07-05", applied:"2026-07-08", approved:"2026-07-14"},
-   appNo:"PMSGY-2026-4890", workOrderNo:"", notes:"Waiting on work order."}
-];
-let inventory = [
-  {id:1, name:"450W Solar Panel", category:"Panel", stock:34, reorder:15, cost:15000},
-  {id:2, name:"3kW Grid-tie Inverter", category:"Inverter", stock:4, reorder:5, cost:28000},
-  {id:3, name:"Roof Mounting Rail (3m)", category:"Mounting", stock:60, reorder:20, cost:1800},
-  {id:4, name:"5kW Grid-tie Inverter", category:"Inverter", stock:2, reorder:3, cost:42000},
-  {id:5, name:"PV Cable (100m roll)", category:"Cable", stock:12, reorder:6, cost:6500}
-];
-let crewList = [
-  {id:1, name:"Suresh Patil", role:"Lead Installer", phone:"+91 90000 00001", payType:"Monthly Salary", rate:25000, assigned:"Crew A", payStatus:"paid"},
-  {id:2, name:"Vinod Shetty", role:"Electrician", phone:"+91 90000 00002", payType:"Per Job", rate:3000, assigned:"Crew A", payStatus:"pending"},
-  {id:3, name:"Manoj Das", role:"Installer", phone:"+91 90000 00003", payType:"Daily Wage", rate:800, assigned:"Crew B", payStatus:"paid"}
-];
+/* ---------- Data (loaded from Supabase after login) ---------- */
+let customers = [];
+let inventory = [];
+let crewList = [];
+let teams = [];
+let assignments = [];
 
-/* ---------- Teams: 24 teams, each 1 electrician + 1 helper ---------- */
-// Placeholder roster - edit names/phones in the Teams tab as you hire/assign real people.
-const ZONE_PATTERN = ["Bengaluru","Bengaluru","Chennai","Chennai","Hyderabad","Hyderabad","Kochi","Kochi",
-  "Pune","Pune","Mumbai","Mumbai","Coimbatore","Coimbatore","Mysuru","Mysuru",
-  "Madurai","Madurai","Trivandrum","Trivandrum","Vijayawada","Vijayawada","Visakhapatnam","Visakhapatnam"];
-let teams = ZONE_PATTERN.map((zone,i)=>({
-  id: i+1,
-  name: `Team ${i+1}`,
-  electrician: "", electricianPhone: "",
-  helper: "", helperPhone: "",
-  zone
-}));
-// Demo assignments so the priority/location matching has something to show.
-teams[0].electrician="Karthik R"; teams[0].electricianPhone="+91 90000 10001";
-teams[0].helper="Basavaraj N"; teams[0].helperPhone="+91 90000 10002";
-teams[4].electrician="Naveen K"; teams[4].electricianPhone="+91 90000 10009";
-teams[4].helper="Ravi Teja"; teams[4].helperPhone="+91 90000 10010";
-
-/* ---------- Installation assignments: customer + team + date + progress ---------- */
-let assignments = [
-  {id:1, customerId:1, teamId:1, date:"2026-07-24", status:"Scheduled", notes:"Prefers weekend installation."},
-  {id:2, customerId:3, teamId:5, date:"2026-06-15", status:"Completed", notes:""}
-];
-
-let nextId = {cust:5, inv:6, crew:4, team:25, assign:3};
 let editingCustomerId = null;
 let editingTeamId = null;
 
-/* ---------- Persistence (localStorage) ---------- */
-const STORAGE_KEY = 'solarops_data_v1';
-function saveState(){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      customers, inventory, crewList, teams, assignments, categoryPrices, nextId
-    }));
-  }catch(e){ console.error('Failed to save data to localStorage', e); }
+/* ---------- Device identity (for "last edited by" tracking) ---------- */
+function getDeviceId(){
+  let id = localStorage.getItem('solarops_device_id');
+  if(!id){ id = crypto.randomUUID(); localStorage.setItem('solarops_device_id', id); }
+  return id;
 }
-function loadState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return;
-    const data = JSON.parse(raw);
-    if(data.customers) customers = data.customers;
-    if(data.inventory) inventory = data.inventory;
-    if(data.crewList) crewList = data.crewList;
-    if(data.teams) teams = data.teams;
-    if(data.assignments) assignments = data.assignments;
-    if(data.categoryPrices) categoryPrices = data.categoryPrices;
-    if(data.nextId) nextId = data.nextId;
-  }catch(e){ console.error('Failed to load saved data, using defaults', e); }
+function getDeviceName(){
+  return localStorage.getItem('solarops_device_name') || '';
 }
-loadState();
+function setDeviceName(name){
+  localStorage.setItem('solarops_device_name', name);
+}
+function ensureDeviceName(){
+  if(!getDeviceName()){
+    const name = window.prompt('Name this device so teammates know who made changes (e.g. "Bijaya\'s Laptop"):', '');
+    setDeviceName(name && name.trim() ? name.trim() : 'Unnamed device');
+  }
+}
+function deviceStamp(){
+  return { updated_by_device_id: getDeviceId(), updated_by_device_name: getDeviceName(), updated_at: new Date().toISOString() };
+}
+
+/* ---------- Row <-> app object mapping ---------- */
+function rowToCustomer(r){
+  return { id:r.id, name:r.name, phone:r.phone||'', email:r.email||'', city:r.city||'',
+    category:r.category||'1KW', price:r.price||0, stageIndex:r.stage_index||0,
+    stageDates:r.stage_dates||{}, priority:r.priority||'Medium', appNo:r.app_no||'',
+    workOrderNo:r.work_order_no||'', notes:r.notes||'',
+    updatedByDeviceName:r.updated_by_device_name||'' };
+}
+function customerToRow(c){
+  return { name:c.name, phone:c.phone, email:c.email, city:c.city, category:c.category, price:c.price,
+    stage_index:c.stageIndex, stage_dates:c.stageDates, priority:c.priority, app_no:c.appNo,
+    work_order_no:c.workOrderNo, notes:c.notes, ...deviceStamp() };
+}
+function rowToTeam(r){
+  return { id:r.id, name:r.name, electrician:r.electrician||'', electricianPhone:r.electrician_phone||'',
+    helper:r.helper||'', helperPhone:r.helper_phone||'', zone:r.zone||'',
+    updatedByDeviceName:r.updated_by_device_name||'' };
+}
+function teamToRow(t){
+  return { name:t.name, zone:t.zone, electrician:t.electrician, electrician_phone:t.electricianPhone,
+    helper:t.helper, helper_phone:t.helperPhone, ...deviceStamp() };
+}
+function rowToInventory(r){
+  return { id:r.id, name:r.name, category:r.category||'', stock:r.stock||0, reorder:r.reorder||0, cost:r.cost||0,
+    updatedByDeviceName:r.updated_by_device_name||'' };
+}
+function inventoryToRow(i){
+  return { name:i.name, category:i.category, stock:i.stock, reorder:i.reorder, cost:i.cost, ...deviceStamp() };
+}
+function rowToCrew(r){
+  return { id:r.id, name:r.name, role:r.role||'', phone:r.phone||'', payType:r.pay_type||'Daily Wage',
+    rate:r.rate||0, assigned:r.assigned||'', payStatus:r.pay_status||'pending',
+    updatedByDeviceName:r.updated_by_device_name||'' };
+}
+function crewToRow(c){
+  return { name:c.name, role:c.role, phone:c.phone, pay_type:c.payType, rate:c.rate,
+    assigned:c.assigned, pay_status:c.payStatus, ...deviceStamp() };
+}
+function rowToAssignment(r){
+  return { id:r.id, customerId:r.customer_id, teamId:r.team_id, date:r.date||'', status:r.status||'Scheduled', notes:r.notes||'',
+    updatedByDeviceName:r.updated_by_device_name||'' };
+}
+
+/* ---------- Load all data from Supabase ---------- */
+async function loadAllData(){
+  const [c, t, i, cr, a, s] = await Promise.all([
+    sb.from('customers').select('*').order('id'),
+    sb.from('teams').select('*').order('id'),
+    sb.from('inventory').select('*').order('id'),
+    sb.from('crew').select('*').order('id'),
+    sb.from('assignments').select('*').order('id'),
+    sb.from('app_settings').select('*').eq('id', 1).maybeSingle()
+  ]);
+  customers = (c.data||[]).map(rowToCustomer);
+  teams = (t.data||[]).map(rowToTeam);
+  inventory = (i.data||[]).map(rowToInventory);
+  crewList = (cr.data||[]).map(rowToCrew);
+  assignments = (a.data||[]).map(rowToAssignment);
+  if(s.data && s.data.category_prices) categoryPrices = s.data.category_prices;
+}
+function renderEverything(){
+  loadSettingsForm();
+  document.getElementById('deviceNameSetting').value = getDeviceName();
+  renderDashboard();
+  renderPipeline();
+  renderTeams();
+  populateAssignCustomerSelect();
+  onAssignCustomerChange();
+  renderAssignments();
+  renderInventory();
+  renderCrew();
+}
+
+/* ---------- Auth ---------- */
+async function handleLogin(){
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if(!password){ errEl.textContent = 'Enter the password.'; errEl.style.display = 'block'; return; }
+  const { error } = await sb.auth.signInWithPassword({ email: SHARED_LOGIN_EMAIL, password });
+  if(error){ errEl.textContent = 'Incorrect password.'; errEl.style.display = 'block'; return; }
+  await onAuthenticated();
+}
+async function handleLogout(){
+  await sb.auth.signOut();
+  document.querySelector('.app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
+}
+async function onAuthenticated(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.querySelector('.app').style.display = 'flex';
+  ensureDeviceName();
+  await loadAllData();
+  renderEverything();
+  subscribeRealtime();
+}
+async function initAuth(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){
+    await onAuthenticated();
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+}
+
+/* ---------- Live sync across devices ---------- */
+let remoteChangeTimer = null;
+function handleRemoteChange(payload){
+  if(payload.new && payload.new.updated_by_device_id === getDeviceId()) return;
+  clearTimeout(remoteChangeTimer);
+  remoteChangeTimer = setTimeout(async ()=>{
+    await loadAllData();
+    renderEverything();
+  }, 300);
+}
+function subscribeRealtime(){
+  sb.channel('solarops-changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'customers' }, handleRemoteChange)
+    .on('postgres_changes', { event:'*', schema:'public', table:'teams' }, handleRemoteChange)
+    .on('postgres_changes', { event:'*', schema:'public', table:'inventory' }, handleRemoteChange)
+    .on('postgres_changes', { event:'*', schema:'public', table:'crew' }, handleRemoteChange)
+    .on('postgres_changes', { event:'*', schema:'public', table:'assignments' }, handleRemoteChange)
+    .on('postgres_changes', { event:'*', schema:'public', table:'app_settings' }, handleRemoteChange)
+    .subscribe();
+}
 
 /* ---------- Formatting ---------- */
 function fmtMoney(n){
@@ -753,7 +862,7 @@ function renderCustTimeline(cust){
       <span>${s.label}${date?` <span class="tdate">— ${date}</span>`:''}</span></li>`;
   }).join('');
 }
-function saveCustomer(){
+async function saveCustomer(){
   const name = document.getElementById('custName').value.trim();
   if(!name){ alert('Please enter a name.'); return; }
   const catInput = document.querySelector('input[name="custCategory"]:checked');
@@ -776,35 +885,38 @@ function saveCustomer(){
       const key = STAGES[newStage].key;
       if(!c.stageDates[key]) c.stageDates[key] = todayStr();
     }
+    const { error } = await sb.from('customers').update(customerToRow(c)).eq('id', c.id);
+    if(error){ alert('Failed to save: '+error.message); return; }
   } else {
     const stageDates = {}; stageDates[STAGES[0].key] = todayStr();
-    customers.push({
-      id: nextId.cust++, name, phone:document.getElementById('custPhone').value,
+    const newCust = { name, phone:document.getElementById('custPhone').value,
       email:document.getElementById('custEmail').value, city:document.getElementById('custCity').value,
       category, price, stageIndex:0, stageDates,
       priority:document.getElementById('custPriority').value,
       appNo:document.getElementById('custAppNo').value, workOrderNo:document.getElementById('custWorkOrderNo').value,
-      notes:document.getElementById('custNotes').value
-    });
+      notes:document.getElementById('custNotes').value };
+    const { data, error } = await sb.from('customers').insert(customerToRow(newCust)).select().single();
+    if(error){ alert('Failed to save: '+error.message); return; }
+    customers.push(rowToCustomer(data));
   }
   closeModal('custOverlay');
-  saveState();
   renderPipeline(); renderDashboard();
 }
-function deleteCustomer(id){
+async function deleteCustomer(id){
   if(!confirm('Delete this customer record?')) return;
+  const { error } = await sb.from('customers').delete().eq('id', id);
+  if(error){ alert('Failed to delete: '+error.message); return; }
   customers = customers.filter(c=>c.id!==id);
   assignments = assignments.filter(a=>a.customerId!==id);
-  saveState();
   renderPipeline(); renderDashboard(); renderTeams(); renderAssignments();
 }
-function advanceStage(id){
+async function advanceStage(id){
   const c = customers.find(x=>x.id===id);
   if(c.stageIndex >= STAGES.length-1) return;
   c.stageIndex++;
   const key = STAGES[c.stageIndex].key;
   if(!c.stageDates[key]) c.stageDates[key] = todayStr();
-  saveState();
+  await sb.from('customers').update({ stage_index:c.stageIndex, stage_dates:c.stageDates, ...deviceStamp() }).eq('id', c.id);
   renderPipeline(); renderDashboard();
 }
 const PRIORITY_RANK = {High:0, Medium:1, Low:2};
@@ -878,12 +990,12 @@ function goAssign(custId){
   document.querySelector('.tab-btn[data-tab="assign"]').click();
   setTimeout(()=>openAssignForm(custId), 0);
 }
-function cyclePriority(id){
+async function cyclePriority(id){
   const order = ['High','Medium','Low'];
   const c = customers.find(x=>x.id===id);
   const idx = order.indexOf(c.priority || 'Medium');
   c.priority = order[(idx+1)%order.length];
-  saveState();
+  await sb.from('customers').update({ priority:c.priority, ...deviceStamp() }).eq('id', id);
   renderPipeline(); renderDashboard();
 }
 function renderLegend(){
@@ -893,12 +1005,12 @@ function renderLegend(){
     `<li><span class="legend-swatch" style="background:${STAGE_COLORS[i]};"></span><span>${i+1}. ${s.label}</span></li>`
   ).join('');
 }
-function jumpStage(id, idx){
+async function jumpStage(id, idx){
   const c = customers.find(x=>x.id===id);
   c.stageIndex = idx;
   const key = STAGES[idx].key;
   if(!c.stageDates[key]) c.stageDates[key] = todayStr();
-  saveState();
+  await sb.from('customers').update({ stage_index:c.stageIndex, stage_dates:c.stageDates, ...deviceStamp() }).eq('id', id);
   renderPipeline(); renderDashboard();
 }
 
@@ -914,7 +1026,7 @@ function openTeamModal(team){
   document.getElementById('teamHelperPhone').value = team.helperPhone || '';
   document.getElementById('teamOverlay').classList.add('open');
 }
-function saveTeam(){
+async function saveTeam(){
   const t = teamById(editingTeamId);
   if(!t) return;
   t.name = document.getElementById('teamName').value.trim() || t.name;
@@ -923,8 +1035,8 @@ function saveTeam(){
   t.electricianPhone = document.getElementById('teamElectricianPhone').value.trim();
   t.helper = document.getElementById('teamHelper').value.trim();
   t.helperPhone = document.getElementById('teamHelperPhone').value.trim();
+  await sb.from('teams').update(teamToRow(t)).eq('id', t.id);
   closeModal('teamOverlay');
-  saveState();
   renderTeams(); renderPipeline();
 }
 function renderTeams(){
@@ -1009,7 +1121,7 @@ function resetAssignForm(){
   populateAssignCustomerSelect();
   onAssignCustomerChange();
 }
-function saveAssignment(){
+async function saveAssignment(){
   const custId = Number(document.getElementById('assignCustomer').value);
   const teamId = document.getElementById('assignTeam').value ? Number(document.getElementById('assignTeam').value) : null;
   const date = document.getElementById('assignDate').value;
@@ -1017,27 +1129,33 @@ function saveAssignment(){
   if(!custId){ alert('Please select a customer.'); return; }
   if(!teamId){ alert('Please select a team.'); return; }
   let a = assignmentForCustomer(custId);
+  const row = { customer_id:custId, team_id:teamId, date, notes, ...deviceStamp() };
   if(a){
     a.teamId = teamId; a.date = date; a.notes = notes;
+    const { error } = await sb.from('assignments').update(row).eq('id', a.id);
+    if(error){ alert('Failed to save: '+error.message); return; }
   } else {
-    assignments.push({id: nextId.assign++, customerId:custId, teamId, date, status:'Scheduled', notes});
+    row.status = 'Scheduled';
+    const { data, error } = await sb.from('assignments').insert(row).select().single();
+    if(error){ alert('Failed to save: '+error.message); return; }
+    assignments.push(rowToAssignment(data));
   }
   assignFormCustomerId = null;
-  saveState();
   renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
   resetAssignForm();
 }
-function deleteAssignment(id){
+async function deleteAssignment(id){
   if(!confirm('Remove this installation assignment?')) return;
+  await sb.from('assignments').delete().eq('id', id);
   assignments = assignments.filter(a=>a.id!==id);
-  saveState();
   renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
 }
-function cycleAssignmentStatus(id){
+async function cycleAssignmentStatus(id){
   const order = ['Scheduled','In Progress','Completed'];
   const a = assignments.find(x=>x.id===id);
   const idx = order.indexOf(a.status);
   a.status = order[(idx+1)%order.length];
+  await sb.from('assignments').update({ status:a.status, ...deviceStamp() }).eq('id', id);
   // Keep the customer's pipeline stage in sync once installation is marked complete.
   if(a.status==='Completed'){
     const c = customers.find(x=>x.id===a.customerId);
@@ -1045,9 +1163,9 @@ function cycleAssignmentStatus(id){
     if(c && c.stageIndex < installedIdx){
       c.stageIndex = installedIdx;
       if(!c.stageDates.installed) c.stageDates.installed = a.date || todayStr();
+      await sb.from('customers').update({ stage_index:c.stageIndex, stage_dates:c.stageDates, ...deviceStamp() }).eq('id', c.id);
     }
   }
-  saveState();
   renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
 }
 function renderAssignments(){
@@ -1092,30 +1210,32 @@ function openInventoryModal(){
   document.getElementById('invCost').value='';
   document.getElementById('invOverlay').classList.add('open');
 }
-function saveInventory(){
+async function saveInventory(){
   const name = document.getElementById('invName').value.trim();
   if(!name){ alert('Please enter an item name.'); return; }
-  inventory.push({
-    id: nextId.inv++, name,
+  const newItem = {
+    name,
     category: document.getElementById('invCategory').value,
     stock: Number(document.getElementById('invStock').value)||0,
     reorder: Number(document.getElementById('invReorder').value)||0,
     cost: Number(document.getElementById('invCost').value)||0
-  });
+  };
+  const { data, error } = await sb.from('inventory').insert(inventoryToRow(newItem)).select().single();
+  if(error){ alert('Failed to save: '+error.message); return; }
+  inventory.push(rowToInventory(data));
   closeModal('invOverlay');
-  saveState();
   renderInventory(); renderDashboard();
 }
-function deleteInv(id){
+async function deleteInv(id){
   if(!confirm('Delete this item?')) return;
+  await sb.from('inventory').delete().eq('id', id);
   inventory = inventory.filter(i=>i.id!==id);
-  saveState();
   renderInventory(); renderDashboard();
 }
-function adjustStock(id, delta){
+async function adjustStock(id, delta){
   const item = inventory.find(i=>i.id===id);
   item.stock = Math.max(0, item.stock+delta);
-  saveState();
+  await sb.from('inventory').update({ stock:item.stock, ...deviceStamp() }).eq('id', id);
   renderInventory(); renderDashboard();
 }
 function renderInventory(){
@@ -1151,32 +1271,34 @@ function openCrewModal(){
   document.getElementById('crewPayStatus').value='pending';
   document.getElementById('crewOverlay').classList.add('open');
 }
-function saveCrew(){
+async function saveCrew(){
   const name = document.getElementById('crewName').value.trim();
   if(!name){ alert('Please enter a name.'); return; }
-  crewList.push({
-    id: nextId.crew++, name,
+  const newCrew = {
+    name,
     role: document.getElementById('crewRole').value,
     phone: document.getElementById('crewPhone').value,
     payType: document.getElementById('crewPayType').value,
     rate: Number(document.getElementById('crewRate').value)||0,
     assigned: document.getElementById('crewAssigned').value,
     payStatus: document.getElementById('crewPayStatus').value
-  });
+  };
+  const { data, error } = await sb.from('crew').insert(crewToRow(newCrew)).select().single();
+  if(error){ alert('Failed to save: '+error.message); return; }
+  crewList.push(rowToCrew(data));
   closeModal('crewOverlay');
-  saveState();
   renderCrew(); renderDashboard();
 }
-function deleteCrew(id){
+async function deleteCrew(id){
   if(!confirm('Delete this crew member?')) return;
+  await sb.from('crew').delete().eq('id', id);
   crewList = crewList.filter(c=>c.id!==id);
-  saveState();
   renderCrew();
 }
-function toggleCrewPay(id){
+async function toggleCrewPay(id){
   const c = crewList.find(x=>x.id===id);
   c.payStatus = c.payStatus==='paid' ? 'pending' : 'paid';
-  saveState();
+  await sb.from('crew').update({ pay_status:c.payStatus, ...deviceStamp() }).eq('id', id);
   renderCrew(); renderDashboard();
 }
 function renderCrew(){
@@ -1201,13 +1323,19 @@ function loadSettingsForm(){
   document.getElementById('price3kw').value = categoryPrices['3KW'];
   document.getElementById('price5kw').value = categoryPrices['5KW'];
 }
-function saveSettings(){
+async function saveSettings(){
   categoryPrices['1KW'] = Number(document.getElementById('price1kw').value)||0;
   categoryPrices['3KW'] = Number(document.getElementById('price3kw').value)||0;
   categoryPrices['5KW'] = Number(document.getElementById('price5kw').value)||0;
-  saveState();
+  await sb.from('app_settings').update({ category_prices:categoryPrices, ...deviceStamp() }).eq('id', 1);
   document.getElementById('settingsSaved').style.display='block';
   setTimeout(()=>{ document.getElementById('settingsSaved').style.display='none'; }, 1500);
+}
+function saveDeviceNameSetting(){
+  const v = document.getElementById('deviceNameSetting').value.trim();
+  setDeviceName(v || 'Unnamed device');
+  document.getElementById('deviceNameSaved').style.display='block';
+  setTimeout(()=>{ document.getElementById('deviceNameSaved').style.display='none'; }, 1500);
 }
 
 /* ---------- DASHBOARD ---------- */
@@ -1272,15 +1400,7 @@ if('serviceWorker' in navigator){
 }
 
 /* ---------- Init ---------- */
-loadSettingsForm();
-renderPipeline();
-renderTeams();
-populateAssignCustomerSelect();
-onAssignCustomerChange();
-renderAssignments();
-renderInventory();
-renderCrew();
-renderDashboard();
+initAuth();
 </script>
 </body>
 </html>
