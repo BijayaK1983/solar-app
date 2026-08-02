@@ -33,6 +33,7 @@ repo; ask the project owner for it directly if you need infra access.
 | `sw.js` | Service worker — caches the static shell only (explicitly ignores Supabase API calls, see comments in the fetch handler) |
 | `icon-192.png`, `icon-512.png` | App icons |
 | `.claude/launch.json` | Local dev server config (`python3 -m http.server 8934`) |
+| `migrations/*.sql` | One-off Supabase schema migrations, in date order — run each once in the SQL Editor before deploying the app version that depends on it |
 
 ## Code structure inside `solar_business_app.html`
 
@@ -99,6 +100,21 @@ The `<script>` block is organized top-to-bottom as:
 - **Completing an assignment auto-advances the pipeline**: `cycleAssignmentStatus()`
   bumps a customer to the "Installation Completed" stage if they're not already
   past it, when their assignment status is set to `Completed`.
+- **Bill of Materials drives auto-deduct**: `categoryBOM` (Settings → Bill of Materials,
+  stored in `app_settings.category_bom`) maps each `1KW`/`3KW`/`5KW` category to a list
+  of `{itemId, qty}` lines. The first time an assignment hits `Completed`,
+  `applyBOMForCategory()` subtracts those quantities from `inventory` and calls
+  `logMovement()` for each line; `assignments.stock_deducted` guards against deducting
+  twice if the status is toggled back and forth.
+- **Inventory movement history**: every stock change (manual +/-, edit-form correction,
+  supplier receipt, or BOM auto-deduct) goes through `logMovement()`, which inserts into
+  `inventory_movements` and prepends to the in-memory `inventoryMovements` array. Per-item
+  history is viewable via the "History" button (`openInventoryHistory()`).
+- **Reorder / purchase-order tracking is lightweight, not a separate table**: `reorderItem()`
+  just stamps `on_order_qty` / `on_order_date` directly on the inventory row (prompts for
+  quantity via `window.prompt`); `receiveStock()` adds that quantity to `stock`, clears the
+  two fields, and logs the movement. There's no history of past orders beyond what shows up
+  in the movement log.
 
 ## Local development
 

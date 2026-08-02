@@ -369,8 +369,20 @@
         <button class="btn" onclick="openInventoryModal()">+ Add Item</button>
       </div>
       <div class="card">
+        <div class="toolbar">
+          <input class="search" id="invSearch" placeholder="Search by item or supplier..." oninput="renderInventory()">
+          <select class="search" id="invCategoryFilter" style="width:190px;" onchange="renderInventory()">
+            <option value="">All categories</option>
+            <option value="Panel">Panel</option>
+            <option value="Inverter">Inverter</option>
+            <option value="Mounting">Mounting Hardware</option>
+            <option value="Battery">Battery</option>
+            <option value="Cable">Cable / Wiring</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
         <table>
-          <thead><tr><th>Item</th><th>Category</th><th>In Stock</th><th>Reorder Level</th><th>Unit Cost</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Item</th><th>Category</th><th>In Stock</th><th>Reorder Level</th><th>Unit Cost</th><th>Supplier</th><th>Status</th><th></th></tr></thead>
           <tbody id="invBody"></tbody>
         </table>
         <div class="empty" id="invEmpty" style="display:none;">No inventory items yet.</div>
@@ -410,6 +422,13 @@
         <div class="field"><label>5 KW System Price (₹)</label><input id="price5kw" type="number"></div>
         <button class="btn" onclick="saveSettings()">Save Prices</button>
         <div class="hint" id="settingsSaved" style="display:none;color:var(--green);margin-top:8px;">Saved.</div>
+      </div>
+      <div class="card" style="max-width:640px;margin-top:16px;">
+        <h2>Bill of Materials per Category</h2>
+        <p class="hint" style="margin-top:-6px;margin-bottom:12px;">What each install category consumes from Inventory. Marking an assignment "Completed" will auto-deduct these quantities from stock.</p>
+        <div id="bomEditor"></div>
+        <button class="btn" onclick="saveBOM()">Save Bill of Materials</button>
+        <div class="hint" id="bomSaved" style="display:none;color:var(--green);margin-top:8px;">Saved.</div>
       </div>
       <div class="card" style="max-width:480px;margin-top:16px;">
         <h2>This Device</h2>
@@ -509,7 +528,7 @@
 <!-- INVENTORY MODAL -->
 <div class="overlay" id="invOverlay">
   <div class="modal">
-    <h2>Add Inventory Item</h2>
+    <h2 id="invModalTitle">Add Inventory Item</h2>
     <div class="field"><label>Item Name</label><input id="invName" placeholder="450W Solar Panel"></div>
     <div class="field"><label>Category</label>
       <select id="invCategory">
@@ -526,9 +545,24 @@
       <div><label>Reorder Level</label><input id="invReorder" type="number" placeholder="5"></div>
     </div>
     <div class="field"><label>Unit Cost (₹)</label><input id="invCost" type="number" placeholder="15000"></div>
+    <div class="field row2">
+      <div><label>Supplier Name</label><input id="invSupplier" placeholder="e.g. Sundyne Traders"></div>
+      <div><label>Supplier Phone</label><input id="invSupplierPhone" placeholder="+91 90000 00000"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn outline" onclick="closeModal('invOverlay')">Cancel</button>
       <button class="btn" onclick="saveInventory()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY MOVEMENT HISTORY MODAL -->
+<div class="overlay" id="invHistoryOverlay">
+  <div class="modal">
+    <h2 id="invHistoryTitle">Movement History</h2>
+    <ul class="timeline" id="invHistoryList"></ul>
+    <div class="modal-actions">
+      <button class="btn outline" onclick="closeModal('invHistoryOverlay')">Close</button>
     </div>
   </div>
 </div>
@@ -604,10 +638,13 @@ const STAGE_COLORS = [
 
 /* ---------- Settings ---------- */
 let categoryPrices = {'1KW':65000, '3KW':185000, '5KW':295000};
+// Bill of Materials: which inventory items (and how many) each category consumes per install.
+let categoryBOM = {'1KW':[], '3KW':[], '5KW':[]};
 
 /* ---------- Data (loaded from Supabase after login) ---------- */
 let customers = [];
 let inventory = [];
+let inventoryMovements = [];
 let crewList = [];
 let teams = [];
 let assignments = [];
@@ -661,10 +698,18 @@ function teamToRow(t){
 }
 function rowToInventory(r){
   return { id:r.id, name:r.name, category:r.category||'', stock:r.stock||0, reorder:r.reorder||0, cost:r.cost||0,
+    supplier:r.supplier||'', supplierPhone:r.supplier_phone||'',
+    onOrderQty:r.on_order_qty||null, onOrderDate:r.on_order_date||null,
     updatedByDeviceName:r.updated_by_device_name||'' };
 }
 function inventoryToRow(i){
-  return { name:i.name, category:i.category, stock:i.stock, reorder:i.reorder, cost:i.cost, ...deviceStamp() };
+  return { name:i.name, category:i.category, stock:i.stock, reorder:i.reorder, cost:i.cost,
+    supplier:i.supplier||'', supplier_phone:i.supplierPhone||'',
+    on_order_qty:i.onOrderQty ?? null, on_order_date:i.onOrderDate ?? null, ...deviceStamp() };
+}
+function rowToMovement(r){
+  return { id:r.id, inventoryId:r.inventory_id, changeQty:r.change_qty, reason:r.reason||'',
+    customerId:r.customer_id||null, createdAt:r.created_at, updatedByDeviceName:r.updated_by_device_name||'' };
 }
 function rowToCrew(r){
   return { id:r.id, name:r.name, role:r.role||'', phone:r.phone||'', payType:r.pay_type||'Daily Wage',
@@ -677,15 +722,16 @@ function crewToRow(c){
 }
 function rowToAssignment(r){
   return { id:r.id, customerId:r.customer_id, teamId:r.team_id, date:r.date||'', status:r.status||'Scheduled', notes:r.notes||'',
-    updatedByDeviceName:r.updated_by_device_name||'' };
+    stockDeducted:r.stock_deducted||false, updatedByDeviceName:r.updated_by_device_name||'' };
 }
 
 /* ---------- Load all data from Supabase ---------- */
 async function loadAllData(){
-  const [c, t, i, cr, a, s] = await Promise.all([
+  const [c, t, i, im, cr, a, s] = await Promise.all([
     sb.from('customers').select('*').order('id'),
     sb.from('teams').select('*').order('id'),
     sb.from('inventory').select('*').order('id'),
+    sb.from('inventory_movements').select('*').order('created_at', {ascending:false}),
     sb.from('crew').select('*').order('id'),
     sb.from('assignments').select('*').order('id'),
     sb.from('app_settings').select('*').eq('id', 1).maybeSingle()
@@ -693,12 +739,15 @@ async function loadAllData(){
   customers = (c.data||[]).map(rowToCustomer);
   teams = (t.data||[]).map(rowToTeam);
   inventory = (i.data||[]).map(rowToInventory);
+  inventoryMovements = (im.data||[]).map(rowToMovement);
   crewList = (cr.data||[]).map(rowToCrew);
   assignments = (a.data||[]).map(rowToAssignment);
   if(s.data && s.data.category_prices) categoryPrices = s.data.category_prices;
+  if(s.data && s.data.category_bom) categoryBOM = s.data.category_bom;
 }
 function renderEverything(){
   loadSettingsForm();
+  renderBOMEditor();
   document.getElementById('deviceNameSetting').value = getDeviceName();
   renderDashboard();
   renderPipeline();
@@ -758,6 +807,7 @@ function subscribeRealtime(){
     .on('postgres_changes', { event:'*', schema:'public', table:'customers' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'teams' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'inventory' }, handleRemoteChange)
+    .on('postgres_changes', { event:'*', schema:'public', table:'inventory_movements' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'crew' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'assignments' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'app_settings' }, handleRemoteChange)
@@ -809,6 +859,8 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab==='dashboard') renderDashboard();
     if(btn.dataset.tab==='teams') renderTeams();
     if(btn.dataset.tab==='assign'){ populateAssignCustomerSelect(); renderAssignments(); }
+    if(btn.dataset.tab==='settings') renderBOMEditor();
+    if(btn.dataset.tab==='inventory') renderInventory();
   });
 });
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
@@ -1155,8 +1207,9 @@ async function cycleAssignmentStatus(id){
   const a = assignments.find(x=>x.id===id);
   const idx = order.indexOf(a.status);
   a.status = order[(idx+1)%order.length];
-  await sb.from('assignments').update({ status:a.status, ...deviceStamp() }).eq('id', id);
-  // Keep the customer's pipeline stage in sync once installation is marked complete.
+  const updatePayload = { status:a.status, ...deviceStamp() };
+  // Keep the customer's pipeline stage in sync once installation is marked complete,
+  // and auto-deduct that category's Bill of Materials from inventory (once only).
   if(a.status==='Completed'){
     const c = customers.find(x=>x.id===a.customerId);
     const installedIdx = STAGES.findIndex(s=>s.key==='installed');
@@ -1165,8 +1218,28 @@ async function cycleAssignmentStatus(id){
       if(!c.stageDates.installed) c.stageDates.installed = a.date || todayStr();
       await sb.from('customers').update({ stage_index:c.stageIndex, stage_dates:c.stageDates, ...deviceStamp() }).eq('id', c.id);
     }
+    if(!a.stockDeducted && c){
+      await applyBOMForCategory(c.category, c.id);
+      a.stockDeducted = true;
+      updatePayload.stock_deducted = true;
+    }
   }
-  renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
+  await sb.from('assignments').update(updatePayload).eq('id', id);
+  renderAssignments(); renderTeams(); renderPipeline(); renderDashboard(); renderInventory();
+}
+async function applyBOMForCategory(category, customerId){
+  const recipe = categoryBOM[category] || [];
+  for(const line of recipe){
+    const item = inventoryById(line.itemId);
+    if(!item) continue;
+    const qty = Number(line.qty)||0;
+    if(qty<=0) continue;
+    const newStock = Math.max(0, item.stock - qty);
+    const actualDelta = newStock - item.stock;
+    item.stock = newStock;
+    await sb.from('inventory').update({ stock:item.stock, ...deviceStamp() }).eq('id', item.id);
+    if(actualDelta) await logMovement(item.id, actualDelta, 'Auto-deducted — installation completed', customerId);
+  }
 }
 function renderAssignments(){
   const body = document.getElementById('assignBody');
@@ -1202,46 +1275,134 @@ function renderAssignments(){
 }
 
 /* ---------- INVENTORY ---------- */
-function openInventoryModal(){
-  document.getElementById('invName').value='';
-  document.getElementById('invCategory').value='Panel';
-  document.getElementById('invStock').value='';
-  document.getElementById('invReorder').value='';
-  document.getElementById('invCost').value='';
+let editingInvId = null;
+function inventoryById(id){ return inventory.find(i=>i.id===Number(id)); }
+function openInventoryModal(existing){
+  editingInvId = existing ? existing.id : null;
+  document.getElementById('invModalTitle').textContent = existing ? 'Edit Inventory Item' : 'Add Inventory Item';
+  document.getElementById('invName').value = existing?.name || '';
+  document.getElementById('invCategory').value = existing?.category || 'Panel';
+  document.getElementById('invStock').value = existing?.stock ?? '';
+  document.getElementById('invReorder').value = existing?.reorder ?? '';
+  document.getElementById('invCost').value = existing?.cost ?? '';
+  document.getElementById('invSupplier').value = existing?.supplier || '';
+  document.getElementById('invSupplierPhone').value = existing?.supplierPhone || '';
   document.getElementById('invOverlay').classList.add('open');
 }
 async function saveInventory(){
   const name = document.getElementById('invName').value.trim();
   if(!name){ alert('Please enter an item name.'); return; }
-  const newItem = {
+  const formVals = {
     name,
     category: document.getElementById('invCategory').value,
     stock: Number(document.getElementById('invStock').value)||0,
     reorder: Number(document.getElementById('invReorder').value)||0,
-    cost: Number(document.getElementById('invCost').value)||0
+    cost: Number(document.getElementById('invCost').value)||0,
+    supplier: document.getElementById('invSupplier').value.trim(),
+    supplierPhone: document.getElementById('invSupplierPhone').value.trim()
   };
-  const { data, error } = await sb.from('inventory').insert(inventoryToRow(newItem)).select().single();
-  if(error){ alert('Failed to save: '+error.message); return; }
-  inventory.push(rowToInventory(data));
+  if(editingInvId){
+    const existing = inventoryById(editingInvId);
+    const oldStock = existing.stock;
+    const stockDelta = formVals.stock - oldStock;
+    const merged = { ...existing, ...formVals };
+    const { error } = await sb.from('inventory').update(inventoryToRow(merged)).eq('id', editingInvId);
+    if(error){ alert('Failed to save: '+error.message); return; }
+    Object.assign(existing, formVals);
+    if(stockDelta) await logMovement(editingInvId, stockDelta, 'Manual correction (edit form)');
+  } else {
+    const { data, error } = await sb.from('inventory').insert(inventoryToRow(formVals)).select().single();
+    if(error){ alert('Failed to save: '+error.message); return; }
+    const created = rowToInventory(data);
+    inventory.push(created);
+    if(created.stock > 0) await logMovement(created.id, created.stock, 'Initial stock (item created)');
+  }
+  editingInvId = null;
   closeModal('invOverlay');
   renderInventory(); renderDashboard();
 }
 async function deleteInv(id){
-  if(!confirm('Delete this item?')) return;
+  if(!confirm('Delete this item? Its movement history will also be removed.')) return;
   await sb.from('inventory').delete().eq('id', id);
   inventory = inventory.filter(i=>i.id!==id);
+  inventoryMovements = inventoryMovements.filter(m=>m.inventoryId!==id);
   renderInventory(); renderDashboard();
 }
+async function logMovement(inventoryId, changeQty, reason, customerId){
+  if(!changeQty) return;
+  const row = { inventory_id:inventoryId, change_qty:changeQty, reason, customer_id:customerId||null, ...deviceStamp() };
+  const { data, error } = await sb.from('inventory_movements').insert(row).select().single();
+  if(error){ console.error('Failed to log movement:', error.message); return; }
+  inventoryMovements.unshift(rowToMovement(data));
+}
 async function adjustStock(id, delta){
-  const item = inventory.find(i=>i.id===id);
-  item.stock = Math.max(0, item.stock+delta);
+  const item = inventoryById(id);
+  const newStock = Math.max(0, item.stock+delta);
+  const actualDelta = newStock - item.stock;
+  item.stock = newStock;
   await sb.from('inventory').update({ stock:item.stock, ...deviceStamp() }).eq('id', id);
+  if(actualDelta) await logMovement(id, actualDelta, actualDelta>0 ? 'Manual stock increase' : 'Manual stock decrease');
   renderInventory(); renderDashboard();
+}
+async function reorderItem(id){
+  const item = inventoryById(id);
+  const suggested = Math.max(item.reorder*2, item.reorder+10, 10);
+  const qtyStr = window.prompt(`How many ${item.name} are you ordering from ${item.supplier || 'your supplier'}?`, suggested);
+  if(qtyStr===null) return;
+  const qty = Number(qtyStr);
+  if(!qty || qty<=0){ alert('Enter a valid quantity.'); return; }
+  item.onOrderQty = qty;
+  item.onOrderDate = todayStr();
+  await sb.from('inventory').update({ on_order_qty:item.onOrderQty, on_order_date:item.onOrderDate, ...deviceStamp() }).eq('id', id);
+  renderInventory(); renderDashboard();
+}
+async function receiveStock(id){
+  const item = inventoryById(id);
+  if(!item.onOrderQty) return;
+  if(!confirm(`Mark ${item.onOrderQty} × ${item.name} as received and add to stock?`)) return;
+  const qty = item.onOrderQty;
+  item.stock += qty;
+  item.onOrderQty = null;
+  item.onOrderDate = null;
+  await sb.from('inventory').update({ stock:item.stock, on_order_qty:null, on_order_date:null, ...deviceStamp() }).eq('id', id);
+  await logMovement(id, qty, `Received from supplier order${item.supplier? ' ('+item.supplier+')' : ''}`);
+  renderInventory(); renderDashboard();
+}
+function openInventoryHistory(id){
+  const item = inventoryById(id);
+  document.getElementById('invHistoryTitle').textContent = `Movement History — ${item.name}`;
+  const rows = inventoryMovements.filter(m=>m.inventoryId===id);
+  document.getElementById('invHistoryList').innerHTML = rows.length ? rows.map(m=>{
+    const sign = m.changeQty>0 ? '+' : '';
+    const color = m.changeQty>0 ? 'var(--green)' : 'var(--red)';
+    const cust = m.customerId ? customers.find(c=>c.id===m.customerId) : null;
+    const when = m.createdAt ? new Date(m.createdAt).toLocaleString('en-IN') : '';
+    return `<li><span class="tdot done"></span>
+      <span><strong style="color:${color}">${sign}${m.changeQty}</strong> — ${m.reason||'No reason given'}${cust? ' ('+cust.name+')':''}
+      <div class="tdate">${when}${m.updatedByDeviceName? ' · '+m.updatedByDeviceName : ''}</div></span></li>`;
+  }).join('') : '<li class="empty">No stock movements recorded yet.</li>';
+  document.getElementById('invHistoryOverlay').classList.add('open');
 }
 function renderInventory(){
   const body = document.getElementById('invBody');
-  body.innerHTML = inventory.map(i=>{
+  const search = (document.getElementById('invSearch')?.value||'').toLowerCase();
+  const catFilter = document.getElementById('invCategoryFilter')?.value || '';
+  const rows = inventory.filter(i=>{
+    const matchesSearch = i.name.toLowerCase().includes(search) || (i.supplier||'').toLowerCase().includes(search);
+    const matchesCat = !catFilter || i.category===catFilter;
+    return matchesSearch && matchesCat;
+  });
+  body.innerHTML = rows.map(i=>{
     const low = i.stock <= i.reorder;
+    let statusHtml;
+    if(i.onOrderQty){
+      statusHtml = `<span class="badge pending">On order: ${i.onOrderQty}</span><div style="color:var(--muted);font-size:11px;margin-top:2px;">since ${i.onOrderDate}</div>
+        <button class="btn small secondary" style="margin-top:4px;" onclick="receiveStock(${i.id})">Receive</button>`;
+    } else if(low){
+      statusHtml = `<span class="badge low">Reorder</span><button class="btn small secondary" style="margin-top:4px;display:block;" onclick="reorderItem(${i.id})">Reorder</button>`;
+    } else {
+      statusHtml = `<span class="badge ok">OK</span>`;
+    }
     return `
     <tr>
       <td><strong>${i.name}</strong></td>
@@ -1253,10 +1414,16 @@ function renderInventory(){
       </td>
       <td>${i.reorder}</td>
       <td>${fmtMoney(i.cost)}</td>
-      <td>${low? '<span class="badge low">Reorder</span>' : '<span class="badge ok">OK</span>'}</td>
-      <td><button class="icon-btn" onclick="deleteInv(${i.id})">✕</button></td>
+      <td>${i.supplier || '<span style="color:var(--muted);">—</span>'}${i.supplierPhone?`<div style="color:var(--muted);font-size:11px;">${i.supplierPhone}</div>`:''}</td>
+      <td>${statusHtml}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn small outline" onclick='openInventoryModal(${JSON.stringify(i).replace(/'/g,"&#39;")})'>Edit</button>
+        <button class="btn small outline" onclick="openInventoryHistory(${i.id})">History</button>
+        <button class="icon-btn" onclick="deleteInv(${i.id})">✕</button>
+      </td>
     </tr>`;
   }).join('');
+  document.getElementById('invEmpty').style.display = rows.length? 'none':'block';
   document.getElementById('invEmpty').style.display = inventory.length? 'none':'block';
 }
 
@@ -1330,6 +1497,53 @@ async function saveSettings(){
   await sb.from('app_settings').update({ category_prices:categoryPrices, ...deviceStamp() }).eq('id', 1);
   document.getElementById('settingsSaved').style.display='block';
   setTimeout(()=>{ document.getElementById('settingsSaved').style.display='none'; }, 1500);
+}
+
+/* ---------- BILL OF MATERIALS (per category, drives auto-deduct) ---------- */
+function renderBOMEditor(){
+  const el = document.getElementById('bomEditor');
+  if(!el) return;
+  const categories = ['1KW','3KW','5KW'];
+  el.innerHTML = categories.map(cat=>{
+    const lines = categoryBOM[cat] || [];
+    const rowsHtml = lines.map((line, idx)=>{
+      const itemOptions = inventory.map(i=>`<option value="${i.id}" ${Number(line.itemId)===i.id?'selected':''}>${i.name}</option>`).join('');
+      return `
+      <div class="field row2" style="grid-template-columns:2fr 1fr auto;align-items:end;">
+        <div><select onchange="updateBOMLine('${cat}',${idx},'itemId',this.value)"><option value="">Select item...</option>${itemOptions}</select></div>
+        <div><input type="number" min="0" value="${line.qty||''}" placeholder="Qty" onchange="updateBOMLine('${cat}',${idx},'qty',this.value)"></div>
+        <button class="icon-btn" onclick="removeBOMLine('${cat}',${idx})">✕</button>
+      </div>`;
+    }).join('');
+    return `
+    <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+      <h3>${cat} System</h3>
+      ${rowsHtml || '<div class="hint">No items added yet.</div>'}
+      <button class="btn small outline" style="margin-top:6px;" onclick="addBOMLine('${cat}')">+ Add Item</button>
+    </div>`;
+  }).join('');
+}
+function addBOMLine(cat){
+  if(!categoryBOM[cat]) categoryBOM[cat] = [];
+  categoryBOM[cat].push({ itemId:'', qty:1 });
+  renderBOMEditor();
+}
+function removeBOMLine(cat, idx){
+  categoryBOM[cat].splice(idx, 1);
+  renderBOMEditor();
+}
+function updateBOMLine(cat, idx, field, value){
+  categoryBOM[cat][idx][field] = field==='itemId' ? Number(value) : Number(value);
+}
+async function saveBOM(){
+  // Drop incomplete lines (no item selected or qty <= 0) before persisting.
+  ['1KW','3KW','5KW'].forEach(cat=>{
+    categoryBOM[cat] = (categoryBOM[cat]||[]).filter(l=>l.itemId && Number(l.qty)>0);
+  });
+  await sb.from('app_settings').update({ category_bom:categoryBOM, ...deviceStamp() }).eq('id', 1);
+  renderBOMEditor();
+  document.getElementById('bomSaved').style.display='block';
+  setTimeout(()=>{ document.getElementById('bomSaved').style.display='none'; }, 1500);
 }
 function saveDeviceNameSetting(){
   const v = document.getElementById('deviceNameSetting').value.trim();
