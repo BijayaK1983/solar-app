@@ -473,8 +473,13 @@
     <div class="field"><label>Agreed Price (₹)</label><input id="custPrice" type="number"></div>
 
     <div class="field row2">
-      <div><label>Application No. (portal)</label><input id="custAppNo" placeholder="e.g. PMSGY-2026-XXXX"></div>
-      <div><label>Work Order No.</label><input id="custWorkOrderNo" placeholder="e.g. WO-1042"></div>
+      <div><label>Application No. (portal)</label><input id="custAppNo" placeholder="e.g. PMGSY-2026-0001"></div>
+      <div><label>Work Order No.</label>
+        <div style="display:flex;gap:6px;">
+          <input id="custWorkOrderNo" placeholder="e.g. WO-2026-0001" style="flex:1;min-width:0;">
+          <button type="button" class="btn small secondary" onclick="fillWorkOrderNo()" title="Generate the next work order number">Generate</button>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>Priority</label>
@@ -879,6 +884,71 @@ function applyCategoryPrice(){
   const cat = document.querySelector('input[name="custCategory"]:checked');
   if(cat) document.getElementById('custPrice').value = categoryPrices[cat.value] || '';
 }
+/* Application No. — auto-generated as PMGSY-<year>-<4-digit serial>.
+   Serial = highest existing serial for the current year + 1, so it never reuses a
+   number after a deletion, and it restarts at 0001 each January. The field stays
+   editable: if the portal issues a different number, just type over it. */
+const APP_NO_PREFIX = 'PMGSY';
+function nextApplicationNo(){
+  const year = new Date().getFullYear();
+  const re = new RegExp(`^${APP_NO_PREFIX}-${year}-(\\d+)$`, 'i');
+  let max = 0;
+  customers.forEach(c=>{
+    const m = re.exec((c.appNo||'').trim());
+    if(m){ const n = parseInt(m[1],10); if(n>max) max = n; }
+  });
+  return `${APP_NO_PREFIX}-${year}-${String(max+1).padStart(4,'0')}`;
+}
+/* Work Order No. — same scheme as the application number, WO-<year>-<4-digit serial>.
+   Generated on demand by the "Create WO" button rather than prefilled, since a work
+   order only exists once the application is approved. */
+const WO_NO_PREFIX = 'WO';
+const WORKORDER_STAGE_INDEX = STAGES.findIndex(s=>s.key==='workorder');
+function nextWorkOrderNo(){
+  const year = new Date().getFullYear();
+  const re = new RegExp(`^${WO_NO_PREFIX}-${year}-(\\d+)$`, 'i');
+  let max = 0;
+  customers.forEach(c=>{
+    const m = re.exec((c.workOrderNo||'').trim());
+    if(m){ const n = parseInt(m[1],10); if(n>max) max = n; }
+  });
+  return `${WO_NO_PREFIX}-${year}-${String(max+1).padStart(4,'0')}`;
+}
+/* Fills the Work Order No. box in the open modal. Nothing is written to the database
+   until the modal's Save button is pressed. */
+function fillWorkOrderNo(){
+  const input = document.getElementById('custWorkOrderNo');
+  if(input.value.trim() && !confirm(`Replace the existing work order number ${input.value.trim()}?`)) return;
+  input.value = nextWorkOrderNo();
+}
+/* Pipeline-row action: generates the number, saves it, and moves the customer to the
+   "Work Order Created" stage (only forward — a customer already past that stage keeps
+   their current stage and recorded dates). */
+async function createWorkOrder(id){
+  const c = customers.find(x=>x.id===id);
+  if(!c) return;
+  if(c.workOrderNo && c.workOrderNo.trim()){
+    alert(`${c.name} already has work order ${c.workOrderNo}.`);
+    return;
+  }
+  const wo = nextWorkOrderNo();
+  if(!confirm(`Create work order ${wo} for ${c.name}?`)) return;
+
+  const prevWo = c.workOrderNo, prevStage = c.stageIndex, prevDates = {...c.stageDates};
+  c.workOrderNo = wo;
+  if(c.stageIndex < WORKORDER_STAGE_INDEX){
+    c.stageIndex = WORKORDER_STAGE_INDEX;
+    const key = STAGES[WORKORDER_STAGE_INDEX].key;
+    if(!c.stageDates[key]) c.stageDates[key] = todayStr();
+  }
+  const { error } = await sb.from('customers').update(customerToRow(c)).eq('id', c.id);
+  if(error){
+    c.workOrderNo = prevWo; c.stageIndex = prevStage; c.stageDates = prevDates;
+    alert('Failed to create work order: '+error.message);
+    return;
+  }
+  renderPipeline(); renderDashboard(); populateAssignCustomerSelect();
+}
 function openCustomerModal(existing){
   editingCustomerId = existing ? existing.id : null;
   document.getElementById('custModalTitle').textContent = existing? 'Edit Customer' : 'Add Customer';
@@ -890,7 +960,7 @@ function openCustomerModal(existing){
     r.checked = existing ? r.value===existing.category : r.value==='1KW';
   });
   document.getElementById('custPrice').value = existing?.price ?? categoryPrices['1KW'];
-  document.getElementById('custAppNo').value = existing?.appNo || '';
+  document.getElementById('custAppNo').value = existing ? (existing.appNo || '') : nextApplicationNo();
   document.getElementById('custWorkOrderNo').value = existing?.workOrderNo || '';
   document.getElementById('custPriority').value = existing?.priority || 'Medium';
   document.getElementById('custNotes').value = existing?.notes || '';
@@ -1015,6 +1085,9 @@ function renderPipeline(){
       </td>
       <td>${installationCellHtml(c)}</td>
       <td style="white-space:nowrap;">
+        ${c.workOrderNo && c.workOrderNo.trim()
+          ? `<span class="badge ok" title="Work order created">${c.workOrderNo}</span>`
+          : `<button class="btn small secondary" onclick="createWorkOrder(${c.id})" title="Generate a work order number and move to Work Order Created">Create WO</button>`}
         ${isLast? '' : `<button class="btn small secondary" onclick="advanceStage(${c.id})">Advance</button>`}
         <button class="btn small outline" onclick='openCustomerModal(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Edit</button>
         <button class="icon-btn" onclick="deleteCustomer(${c.id})">✕</button>

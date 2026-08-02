@@ -88,6 +88,24 @@ The `<script>` block is organized top-to-bottom as:
   `STAGES`. `stageDates` is a `{stageKey: "YYYY-MM-DD"}` map recording when each
   stage was first reached — `advanceStage()`/`jumpStage()` only set a date if one
   isn't already recorded, so re-visiting a stage doesn't overwrite history.
+- **Application and work order numbers are generated client-side**, both in the form
+  `PREFIX-<year>-<4-digit serial>` (`PMGSY-2026-0001`, `WO-2026-0001`).
+  `nextApplicationNo()` / `nextWorkOrderNo()` scan the in-memory `customers` array
+  with a year-scoped regex, take the highest serial found, and add one — so a
+  deleted customer's number is never reused, and the count restarts at `0001` each
+  January. Values that don't match the pattern (blank, or legacy formats like
+  `WO-1042`) are skipped. Both fields stay editable; the generated value is a
+  default, not a constraint. **Caveat**: because the max is computed from whatever
+  this device has loaded, two devices creating a customer in the same moment can
+  land on the same serial. There's no uniqueness constraint in Postgres backing
+  this up — add one, or move to a real DB sequence, if that starts to bite.
+- **Application No. is prefilled, Work Order No. is on demand**: `openCustomerModal()`
+  fills the application number for new customers only (editing shows the saved value).
+  A work order is created explicitly — either the "Create WO" button in the pipeline
+  row (`createWorkOrder()`: confirms, writes to Supabase, and advances the customer to
+  the "Work Order Created" stage if they aren't already past it, rolling the local
+  object back if the write fails), or the "Generate" button in the customer modal
+  (`fillWorkOrderNo()`: fills the input only — nothing persists until Save).
 - **Task Assignment's three linked dropdowns**: Customer / Application No. / Work
   Order No. are three different *labels* for selecting the same customer. Changing
   any one calls `onAssignIdentifierChange()`, which syncs the other two selects to
