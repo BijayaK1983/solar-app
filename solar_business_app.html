@@ -194,6 +194,14 @@
     border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;
   }
   .pill-select input{width:auto;display:inline;margin-right:6px;}
+  .payroll-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px;}
+  .payroll-summary .card{padding:16px 18px;}
+  .payroll-summary .value{font-size:22px;font-weight:700;margin-top:5px;}
+  .payroll-summary .label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+  .payroll-note{font-size:12px;color:var(--muted);margin:0 0 14px;}
+  @media(max-width:850px){
+    .payroll-summary{grid-template-columns:1fr;gap:10px;}
+  }
 </style>
 </head>
 <body>
@@ -229,6 +237,7 @@
       <button class="tab-btn" data-tab="teams"><span class="ico">🧑‍🔧</span> Teams</button>
       <button class="tab-btn" data-tab="inventory"><span class="ico">📦</span> Inventory</button>
       <button class="tab-btn" data-tab="crew"><span class="ico">👷</span> Crew &amp; Payments</button>
+      <button class="tab-btn" data-tab="payroll"><span class="ico">💰</span> Payroll</button>
       <button class="tab-btn" data-tab="settings"><span class="ico">⚙️</span> Settings</button>
     </nav>
   </aside>
@@ -404,6 +413,37 @@
           <tbody id="crewBody"></tbody>
         </table>
         <div class="empty" id="crewEmpty" style="display:none;">No crew members yet.</div>
+      </div>
+    </section>
+
+    <!-- PAYROLL -->
+    <section id="payroll" class="page" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1>Payroll</h1>
+          <p>Review payroll amounts and payment status for the selected month.</p>
+        </div>
+        <select class="search" id="payrollPeriod" style="width:190px;" onchange="renderPayroll()"></select>
+      </div>
+      <div class="payroll-summary" id="payrollSummary"></div>
+      <div class="card">
+        <p class="payroll-note">Each month stores its own payroll amount and payment status. Use the sample loader to preview June and July 2026, or add records through your payroll workflow.</p>
+        <div class="toolbar">
+          <input class="search" id="payrollSearch" placeholder="Search by name or role..." oninput="renderPayroll()">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select class="search" id="payrollStatusFilter" style="width:160px;" onchange="renderPayroll()">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+            </select>
+            <button class="btn secondary" onclick="loadSamplePayrollData()">Load Sample Data</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Crew Member</th><th>Role</th><th>Pay Type</th><th>Amount</th><th>Assigned To</th><th>Status</th></tr></thead>
+          <tbody id="payrollBody"></tbody>
+        </table>
+        <div class="empty" id="payrollEmpty" style="display:none;">No crew members match this payroll view.</div>
       </div>
     </section>
 
@@ -651,6 +691,7 @@ let customers = [];
 let inventory = [];
 let inventoryMovements = [];
 let crewList = [];
+let payrollRecords = [];
 let teams = [];
 let assignments = [];
 
@@ -721,6 +762,11 @@ function rowToCrew(r){
     rate:r.rate||0, assigned:r.assigned||'', payStatus:r.pay_status||'pending',
     updatedByDeviceName:r.updated_by_device_name||'' };
 }
+function rowToPayroll(r){
+  return { id:r.id, crewId:r.crew_id, payPeriod:r.pay_period, amount:Number(r.amount)||0,
+    status:r.status||'pending', notes:r.notes||'', paidAt:r.paid_at||null,
+    updatedByDeviceName:r.updated_by_device_name||'' };
+}
 function crewToRow(c){
   return { name:c.name, role:c.role, phone:c.phone, pay_type:c.payType, rate:c.rate,
     assigned:c.assigned, pay_status:c.payStatus, ...deviceStamp() };
@@ -732,12 +778,13 @@ function rowToAssignment(r){
 
 /* ---------- Load all data from Supabase ---------- */
 async function loadAllData(){
-  const [c, t, i, im, cr, a, s] = await Promise.all([
+  const [c, t, i, im, cr, pr, a, s] = await Promise.all([
     sb.from('customers').select('*').order('id'),
     sb.from('teams').select('*').order('id'),
     sb.from('inventory').select('*').order('id'),
     sb.from('inventory_movements').select('*').order('created_at', {ascending:false}),
     sb.from('crew').select('*').order('id'),
+    sb.from('payroll_records').select('*').order('pay_period', {ascending:false}),
     sb.from('assignments').select('*').order('id'),
     sb.from('app_settings').select('*').eq('id', 1).maybeSingle()
   ]);
@@ -746,6 +793,7 @@ async function loadAllData(){
   inventory = (i.data||[]).map(rowToInventory);
   inventoryMovements = (im.data||[]).map(rowToMovement);
   crewList = (cr.data||[]).map(rowToCrew);
+  payrollRecords = (pr.data||[]).map(rowToPayroll);
   assignments = (a.data||[]).map(rowToAssignment);
   if(s.data && s.data.category_prices) categoryPrices = s.data.category_prices;
   if(s.data && s.data.category_bom) categoryBOM = s.data.category_bom;
@@ -762,6 +810,7 @@ function renderEverything(){
   renderAssignments();
   renderInventory();
   renderCrew();
+  renderPayroll();
 }
 
 /* ---------- Auth ---------- */
@@ -814,6 +863,7 @@ function subscribeRealtime(){
     .on('postgres_changes', { event:'*', schema:'public', table:'inventory' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'inventory_movements' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'crew' }, handleRemoteChange)
+    .on('postgres_changes', { event:'*', schema:'public', table:'payroll_records' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'assignments' }, handleRemoteChange)
     .on('postgres_changes', { event:'*', schema:'public', table:'app_settings' }, handleRemoteChange)
     .subscribe();
@@ -866,6 +916,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab==='assign'){ populateAssignCustomerSelect(); renderAssignments(); }
     if(btn.dataset.tab==='settings') renderBOMEditor();
     if(btn.dataset.tab==='inventory') renderInventory();
+    if(btn.dataset.tab==='payroll') renderPayroll();
   });
 });
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
@@ -1527,19 +1578,19 @@ async function saveCrew(){
   if(error){ alert('Failed to save: '+error.message); return; }
   crewList.push(rowToCrew(data));
   closeModal('crewOverlay');
-  renderCrew(); renderDashboard();
+  renderCrew(); renderPayroll(); renderDashboard();
 }
 async function deleteCrew(id){
   if(!confirm('Delete this crew member?')) return;
   await sb.from('crew').delete().eq('id', id);
   crewList = crewList.filter(c=>c.id!==id);
-  renderCrew();
+  renderCrew(); renderPayroll();
 }
 async function toggleCrewPay(id){
   const c = crewList.find(x=>x.id===id);
   c.payStatus = c.payStatus==='paid' ? 'pending' : 'paid';
   await sb.from('crew').update({ pay_status:c.payStatus, ...deviceStamp() }).eq('id', id);
-  renderCrew(); renderDashboard();
+  renderCrew(); renderPayroll(); renderDashboard();
 }
 function renderCrew(){
   const body = document.getElementById('crewBody');
@@ -1555,6 +1606,100 @@ function renderCrew(){
       <td><button class="icon-btn" onclick="deleteCrew(${c.id})">✕</button></td>
     </tr>`).join('');
   document.getElementById('crewEmpty').style.display = crewList.length? 'none':'block';
+}
+
+/* ---------- PAYROLL ---------- */
+function payrollPeriods(){
+  const periods = [];
+  const now = new Date();
+  for(let offset=0; offset<6; offset++){
+    const date = new Date(now.getFullYear(), now.getMonth()-offset, 1);
+    const value = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+    const label = date.toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+    periods.push({value, label});
+  }
+  return periods;
+}
+function payrollPeriodLabel(period){
+  const date = new Date(`${period}T00:00:00`);
+  return date.toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+}
+async function togglePayrollStatus(id){
+  const record = payrollRecords.find(r=>r.id===id);
+  if(!record) return;
+  record.status = record.status==='paid' ? 'pending' : 'paid';
+  record.paidAt = record.status==='paid' ? new Date().toISOString() : null;
+  const { error } = await sb.from('payroll_records').update({
+    status:record.status, paid_at:record.paidAt, ...deviceStamp()
+  }).eq('id', id);
+  if(error){ alert('Failed to update payroll status: '+error.message); return; }
+  renderPayroll();
+}
+async function loadSamplePayrollData(){
+  if(!confirm('Add sample crew and payroll records for June and July 2026?')) return;
+  const sampleCrew = [
+    {name:'Anil Sharma', role:'Electrician', phone:'+91 90000 11001', payType:'Monthly Salary', rate:28000, assigned:'Team 1'},
+    {name:'Meena Rao', role:'Installer', phone:'+91 90000 11002', payType:'Monthly Salary', rate:24000, assigned:'Team 2'},
+    {name:'Ravi Kumar', role:'Helper', phone:'+91 90000 11003', payType:'Daily Wage', rate:900, assigned:'Team 3'},
+    {name:'Priya Nair', role:'Site Supervisor', phone:'+91 90000 11004', payType:'Per Job', rate:3500, assigned:'Team 4'}
+  ];
+  const sampleMembers = [];
+  for(const sample of sampleCrew){
+    let member = crewList.find(c=>c.name===sample.name);
+    if(!member){
+      const {data, error} = await sb.from('crew').insert(crewToRow({...sample, payStatus:'pending'})).select().single();
+      if(error){ alert('Failed to create sample crew: '+error.message); return; }
+      member = rowToCrew(data);
+      crewList.push(member);
+    }
+    sampleMembers.push(member);
+  }
+  const records = sampleMembers.flatMap((member, index)=>[
+    {crew_id:member.id, pay_period:'2026-06-01', amount: index===2 ? 19800 : Number(member.rate||0), status:index%2 ? 'pending' : 'paid', notes:'June 2026 sample payroll', ...deviceStamp()},
+    {crew_id:member.id, pay_period:'2026-07-01', amount: index===2 ? 20700 : Number(member.rate||0), status:index===0 || index===3 ? 'paid' : 'pending', notes:'July 2026 sample payroll', ...deviceStamp()}
+  ]);
+  const {error} = await sb.from('payroll_records').upsert(records, {onConflict:'crew_id,pay_period'});
+  if(error){ alert('Failed to create sample payroll: '+error.message+'\nRun the payroll migration first.'); return; }
+  await loadAllData();
+  const periodSelect = document.getElementById('payrollPeriod');
+  periodSelect.value = '2026-07';
+  renderEverything();
+  document.querySelector('.tab-btn[data-tab="payroll"]').click();
+}
+function renderPayroll(){
+  const periodSelect = document.getElementById('payrollPeriod');
+  if(!periodSelect) return;
+  const currentPeriod = periodSelect.value || payrollPeriods()[0].value;
+  periodSelect.innerHTML = payrollPeriods().map(p=>`<option value="${p.value}">${p.label}</option>`).join('');
+  periodSelect.value = payrollPeriods().some(p=>p.value===currentPeriod) ? currentPeriod : payrollPeriods()[0].value;
+  const selectedPeriod = periodSelect.value;
+  const search = (document.getElementById('payrollSearch')?.value||'').toLowerCase();
+  const statusFilter = document.getElementById('payrollStatusFilter')?.value || '';
+  const periodRecords = payrollRecords.filter(r=>r.payPeriod===selectedPeriod+'-01');
+  const rows = periodRecords.map(record=>{
+    const crew = crewList.find(c=>c.id===record.crewId);
+    return {record, crew};
+  }).filter(({record, crew})=>{
+    const matchesSearch = `${crew?.name||''} ${crew?.role||''}`.toLowerCase().includes(search);
+    return matchesSearch && (!statusFilter || record.status===statusFilter);
+  });
+  const pending = periodRecords.filter(r=>r.status==='pending');
+  const paid = periodRecords.filter(r=>r.status==='paid');
+  const estimatedTotal = periodRecords.reduce((sum,r)=>sum+Number(r.amount||0),0);
+  document.getElementById('payrollSummary').innerHTML = `
+    <div class="card"><div class="label">${payrollPeriodLabel(selectedPeriod)}</div><div class="value">${fmtMoney(estimatedTotal)}</div><div class="sub">${periodRecords.length} payroll records</div></div>
+    <div class="card"><div class="label">Pending Payments</div><div class="value" style="color:var(--amber)">${pending.length}</div><div class="sub">${fmtMoney(pending.reduce((sum,r)=>sum+Number(r.amount||0),0))}</div></div>
+    <div class="card"><div class="label">Paid</div><div class="value" style="color:var(--green)">${paid.length}</div><div class="sub">${fmtMoney(paid.reduce((sum,r)=>sum+Number(r.amount||0),0))}</div></div>`;
+  document.getElementById('payrollBody').innerHTML = rows.map(({record, crew})=>`
+    <tr>
+      <td><strong>${crew?.name||'Unknown crew member'}</strong></td>
+      <td>${crew?.role||'—'}</td>
+      <td>${crew?.payType||'—'}</td>
+      <td>${fmtMoney(record.amount)}</td>
+      <td>${crew?.assigned||'—'}</td>
+      <td><span class="badge ${record.status}" style="cursor:pointer" onclick="togglePayrollStatus(${record.id})">${record.status==='paid'?'Paid':'Pending'}</span></td>
+    </tr>`).join('');
+  document.getElementById('payrollEmpty').style.display = rows.length? 'none':'block';
 }
 
 /* ---------- SETTINGS ---------- */

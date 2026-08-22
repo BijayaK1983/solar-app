@@ -1,7 +1,7 @@
 # SolarOps — Installation Business Manager
 
 A single-page web app for running a solar installation business: customer pipeline,
-task/team assignment, inventory, crew & payments, and settings. Live at:
+task/team assignment, inventory, crew, payroll, and settings. Live at:
 
 `https://bijayak1983.github.io/solar-app/solar_business_app.html`
 
@@ -29,6 +29,7 @@ repo; ask the project owner for it directly if you need infra access.
 | File | What it is |
 |---|---|
 | `solar_business_app.html` | The entire app |
+| `SolarOps_Initial_Data_Upload_Template.xlsx` | Excel template with separate sheets for initial Customers, Crew, Inventory, Assignments, and Payroll uploads |
 | `manifest.json` | PWA manifest — name, icons, colors |
 | `sw.js` | Service worker — caches the static shell only (explicitly ignores Supabase API calls, see comments in the fetch handler) |
 | `icon-192.png`, `icon-512.png` | App icons |
@@ -47,7 +48,7 @@ The `<script>` block is organized top-to-bottom as:
    `label`. `STAGE_COLORS` is a parallel array of hex colors for the funnel
    chart/progress dots.
 3. **In-memory state** — `customers`, `teams`, `inventory`, `crewList`,
-   `assignments`, `categoryPrices` are plain arrays/objects, all loaded fresh
+   `payrollRecords`, `assignments`, `categoryPrices` are plain arrays/objects, all loaded fresh
    from Supabase on login (`loadAllData()`) and mutated directly by the UI code.
    There's no framework/virtual DOM — every mutation calls a `render*()` function
    that rebuilds the relevant `innerHTML` from scratch.
@@ -64,12 +65,12 @@ The `<script>` block is organized top-to-bottom as:
    is the single entry point that loads data, renders everything, and subscribes
    to realtime updates.
 7. **Realtime sync** — `subscribeRealtime()` listens to Postgres change events on
-   all six tables. `handleRemoteChange()` debounces (300ms) and skips the event
+  all eight tables. `handleRemoteChange()` debounces (300ms) and skips the event
    if it was caused by this same device (via `updated_by_device_id`), then does a
    full `loadAllData()` + re-render on anything else. This is a blunt "just
    refetch everything" strategy — fine at this data scale, not something to
    over-optimize prematurely.
-8. **Per-tab sections** (Pipeline, Task Assignment, Teams, Inventory, Crew,
+8. **Per-tab sections** (Pipeline, Task Assignment, Teams, Inventory, Crew, Payroll,
    Settings) — each has the same shape: a `render*()` function that rebuilds a
    `<tbody>`/container from the in-memory array, and `save*()`/`delete*()`
    functions that are `async`, write to Supabase first, update the local array
@@ -159,8 +160,8 @@ Whoever's SSH key is set up for this repo can push directly — see
 
 ## Database schema
 
-Six Supabase/Postgres tables: `customers`, `teams`, `inventory`, `crew`,
-`assignments`, `app_settings`. All are behind Row Level Security — only an
+Eight Supabase/Postgres tables: `customers`, `teams`, `inventory`, `crew`,
+`payroll_records`, `inventory_movements`, `assignments`, `app_settings`. All are behind Row Level Security — only an
 authenticated session (i.e. someone who's logged into the app) can read or write
 any of them. The full `CREATE TABLE` / RLS policy SQL is kept in
 `PROJECT_DOCUMENTATION.md` alongside the credentials needed to run it, since
