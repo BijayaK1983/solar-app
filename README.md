@@ -103,7 +103,6 @@ The `<script>` block is organized top-to-bottom as:
 ## Local development
 
 ```bash
-cd "Solar App"
 python3 -m http.server 8934
 ```
 
