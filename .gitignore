@@ -1,2 +1,13 @@
+# Files with live secrets (DB password, login password, API key) — never commit
 PROJECT_DOCUMENTATION.md
 PROJECT_DOCUMENTATION.pdf
+
+# General safety net for secrets/credentials added later
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*secret*
+*password*
+*credential*
