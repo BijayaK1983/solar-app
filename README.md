@@ -96,10 +96,15 @@ The `<script>` block is organized top-to-bottom as:
   deleted customer's number is never reused, and the count restarts at `0001` each
   January. Values that don't match the pattern (blank, or legacy formats like
   `WO-1042`) are skipped. Both fields stay editable; the generated value is a
-  default, not a constraint. **Caveat**: because the max is computed from whatever
-  this device has loaded, two devices creating a customer in the same moment can
-  land on the same serial. There's no uniqueness constraint in Postgres backing
-  this up — add one, or move to a real DB sequence, if that starts to bite.
+  default, not a constraint. **Uniqueness**: because the next serial is computed
+  from whatever this device has loaded, two devices could pick the same number at the
+  same moment. The database blocks this with unique indexes on `app_no` and
+  `work_order_no` (`migrations/2026-09-27_unique_customer_numbers.sql`; case- and
+  space-insensitive, blanks allowed). All customer writes go through
+  `writeCustomerWithFreshNumbers()`: if an app-generated number collides, it asks the
+  database for the real next serial (`freshNumberFromDb()`) and retries (up to 3
+  times), then tells the user which number was used. A number the user typed by hand
+  is never changed silently; they get an "already used by another customer" message.
 - **Application No. is prefilled, Work Order No. is on demand**: `openCustomerModal()`
   fills the application number for new customers only (editing shows the saved value).
   A work order is created explicitly — either the "Create WO" button in the pipeline

@@ -940,37 +940,72 @@ function applyCategoryPrice(){
    number after a deletion, and it restarts at 0001 each January. The field stays
    editable: if the portal issues a different number, just type over it. */
 const APP_NO_PREFIX = 'PMGSY';
-function nextApplicationNo(){
+function nextSerial(prefix, values){
   const year = new Date().getFullYear();
-  const re = new RegExp(`^${APP_NO_PREFIX}-${year}-(\\d+)$`, 'i');
+  const re = new RegExp(`^${prefix}-${year}-(\\d+)$`, 'i');
   let max = 0;
-  customers.forEach(c=>{
-    const m = re.exec((c.appNo||'').trim());
+  values.forEach(v=>{
+    const m = re.exec((v||'').trim());
     if(m){ const n = parseInt(m[1],10); if(n>max) max = n; }
   });
-  return `${APP_NO_PREFIX}-${year}-${String(max+1).padStart(4,'0')}`;
+  return `${prefix}-${year}-${String(max+1).padStart(4,'0')}`;
 }
+function nextApplicationNo(){ return nextSerial(APP_NO_PREFIX, customers.map(c=>c.appNo)); }
 /* Work Order No. — same scheme as the application number, WO-<year>-<4-digit serial>.
    Generated on demand by the "Create WO" button rather than prefilled, since a work
    order only exists once the application is approved. */
 const WO_NO_PREFIX = 'WO';
 const WORKORDER_STAGE_INDEX = STAGES.findIndex(s=>s.key==='workorder');
-function nextWorkOrderNo(){
+function nextWorkOrderNo(){ return nextSerial(WO_NO_PREFIX, customers.map(c=>c.workOrderNo)); }
+
+/* Duplicate protection. The database has unique indexes on app_no and work_order_no
+   (migrations/2026-09-27_unique_customer_numbers.sql), so two devices can no longer
+   save the same number. If a save collides on a number the app generated itself, we
+   ask the database for the real next number and retry; if the user typed the number
+   by hand, we tell them it's already in use instead of silently changing it. */
+async function freshNumberFromDb(column, prefix){
   const year = new Date().getFullYear();
-  const re = new RegExp(`^${WO_NO_PREFIX}-${year}-(\\d+)$`, 'i');
-  let max = 0;
-  customers.forEach(c=>{
-    const m = re.exec((c.workOrderNo||'').trim());
-    if(m){ const n = parseInt(m[1],10); if(n>max) max = n; }
-  });
-  return `${WO_NO_PREFIX}-${year}-${String(max+1).padStart(4,'0')}`;
+  const { data, error } = await sb.from('customers').select(column).ilike(column, `${prefix}-${year}-%`);
+  const local = customers.map(c=> column==='app_no' ? c.appNo : c.workOrderNo);
+  const remote = error ? [] : (data||[]).map(r=>r[column]);
+  return nextSerial(prefix, local.concat(remote));
 }
+function isDuplicateNo(error, column){
+  return !!error && error.code === '23505' && String(error.message||'').includes(column);
+}
+function duplicateNoMessage(error){
+  if(isDuplicateNo(error,'app_no')) return 'That Application No. is already used by another customer. Please check the number and try again.';
+  if(isDuplicateNo(error,'work_order_no')) return 'That Work Order No. is already used by another customer. Please check the number and try again.';
+  return '';
+}
+/* Writes a customer via doWrite(row). `auto` holds the numbers the app generated
+   ({appNo, workOrderNo}); only those are replaced on a collision. Up to 3 attempts. */
+async function writeCustomerWithFreshNumbers(cust, auto, doWrite){
+  const notes = [];
+  for(let attempt=0; attempt<3; attempt++){
+    const { data, error } = await doWrite(customerToRow(cust));
+    if(!error) return { data, error:null, notes };
+    if(isDuplicateNo(error,'app_no') && auto.appNo && (cust.appNo||'').trim()===auto.appNo){
+      const n = await freshNumberFromDb('app_no', APP_NO_PREFIX);
+      notes.push(`Application No. ${cust.appNo} was just taken on another device, so this customer was saved as ${n}.`);
+      cust.appNo = auto.appNo = n;
+    } else if(isDuplicateNo(error,'work_order_no') && auto.workOrderNo && (cust.workOrderNo||'').trim()===auto.workOrderNo){
+      const n = await freshNumberFromDb('work_order_no', WO_NO_PREFIX);
+      notes.push(`Work Order No. ${cust.workOrderNo} was just taken on another device, so this customer was saved as ${n}.`);
+      cust.workOrderNo = auto.workOrderNo = n;
+    } else {
+      return { data:null, error, notes };
+    }
+  }
+  return { data:null, error:{ message:'Could not get a free number after 3 tries. Please try again.' }, notes };
+}
+let custModalAuto = { appNo:'', workOrderNo:'' };
 /* Fills the Work Order No. box in the open modal. Nothing is written to the database
    until the modal's Save button is pressed. */
 function fillWorkOrderNo(){
   const input = document.getElementById('custWorkOrderNo');
   if(input.value.trim() && !confirm(`Replace the existing work order number ${input.value.trim()}?`)) return;
-  input.value = nextWorkOrderNo();
+  input.value = custModalAuto.workOrderNo = nextWorkOrderNo();
 }
 /* Pipeline-row action: generates the number, saves it, and moves the customer to the
    "Work Order Created" stage (only forward — a customer already past that stage keeps
@@ -992,13 +1027,15 @@ async function createWorkOrder(id){
     const key = STAGES[WORKORDER_STAGE_INDEX].key;
     if(!c.stageDates[key]) c.stageDates[key] = todayStr();
   }
-  const { error } = await sb.from('customers').update(customerToRow(c)).eq('id', c.id);
-  if(error){
+  const res = await writeCustomerWithFreshNumbers(c, { appNo:'', workOrderNo:wo },
+    row=>sb.from('customers').update(row).eq('id', c.id));
+  if(res.error){
     c.workOrderNo = prevWo; c.stageIndex = prevStage; c.stageDates = prevDates;
-    alert('Failed to create work order: '+error.message);
+    alert(duplicateNoMessage(res.error) || 'Failed to create work order: '+res.error.message);
     return;
   }
   renderPipeline(); renderDashboard(); populateAssignCustomerSelect();
+  if(res.notes.length) alert(res.notes.join('\n'));
 }
 function openCustomerModal(existing){
   editingCustomerId = existing ? existing.id : null;
@@ -1011,7 +1048,8 @@ function openCustomerModal(existing){
     r.checked = existing ? r.value===existing.category : r.value==='1KW';
   });
   document.getElementById('custPrice').value = existing?.price ?? categoryPrices['1KW'];
-  document.getElementById('custAppNo').value = existing ? (existing.appNo || '') : nextApplicationNo();
+  custModalAuto = { appNo: existing ? '' : nextApplicationNo(), workOrderNo:'' };
+  document.getElementById('custAppNo').value = existing ? (existing.appNo || '') : custModalAuto.appNo;
   document.getElementById('custWorkOrderNo').value = existing?.workOrderNo || '';
   document.getElementById('custPriority').value = existing?.priority || 'Medium';
   document.getElementById('custNotes').value = existing?.notes || '';
@@ -1038,6 +1076,7 @@ function renderCustTimeline(cust){
 async function saveCustomer(){
   const name = document.getElementById('custName').value.trim();
   if(!name){ alert('Please enter a name.'); return; }
+  let notes = [];
   const catInput = document.querySelector('input[name="custCategory"]:checked');
   const category = catInput ? catInput.value : '1KW';
   const price = Number(document.getElementById('custPrice').value)||0;
@@ -1058,8 +1097,15 @@ async function saveCustomer(){
       const key = STAGES[newStage].key;
       if(!c.stageDates[key]) c.stageDates[key] = todayStr();
     }
-    const { error } = await sb.from('customers').update(customerToRow(c)).eq('id', c.id);
-    if(error){ alert('Failed to save: '+error.message); return; }
+    const res = await writeCustomerWithFreshNumbers(c, custModalAuto,
+      row=>sb.from('customers').update(row).eq('id', c.id));
+    if(res.error){
+      // Put the local copy back to what the database actually holds.
+      const { data:fresh } = await sb.from('customers').select('*').eq('id', c.id).single();
+      if(fresh) Object.assign(c, rowToCustomer(fresh));
+      alert(duplicateNoMessage(res.error) || 'Failed to save: '+res.error.message); return;
+    }
+    notes = res.notes;
   } else {
     const stageDates = {}; stageDates[STAGES[0].key] = todayStr();
     const newCust = { name, phone:document.getElementById('custPhone').value,
@@ -1068,12 +1114,15 @@ async function saveCustomer(){
       priority:document.getElementById('custPriority').value,
       appNo:document.getElementById('custAppNo').value, workOrderNo:document.getElementById('custWorkOrderNo').value,
       notes:document.getElementById('custNotes').value };
-    const { data, error } = await sb.from('customers').insert(customerToRow(newCust)).select().single();
-    if(error){ alert('Failed to save: '+error.message); return; }
-    customers.push(rowToCustomer(data));
+    const res = await writeCustomerWithFreshNumbers(newCust, custModalAuto,
+      row=>sb.from('customers').insert(row).select().single());
+    if(res.error){ alert(duplicateNoMessage(res.error) || 'Failed to save: '+res.error.message); return; }
+    customers.push(rowToCustomer(res.data));
+    notes = res.notes;
   }
   closeModal('custOverlay');
   renderPipeline(); renderDashboard();
+  if(notes.length) alert(notes.join('\n'));
 }
 async function deleteCustomer(id){
   if(!confirm('Delete this customer record?')) return;
