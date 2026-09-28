@@ -162,6 +162,15 @@ GitHub Pages rebuilds automatically from `main`, usually live within ~1 minute.
 Whoever's SSH key is set up for this repo can push directly — see
 `PROJECT_DOCUMENTATION.md` (not in this repo) for the deploy-access setup.
 
+## Tests
+
+`tests/` holds offline browser tests that run the app against a fake database — no
+real data is touched. `test_save_customer.py` covers adding/editing customers
+(expired login, network failure, duplicate numbers, double submit);
+`test_login.py` covers the login screen when the Supabase library or the database is
+blocked by the network. See `tests/README.md` to run them. `docs/` has how-to notes
+such as running database migrations.
+
 ## Database schema
 
 Eight Supabase/Postgres tables: `customers`, `teams`, `inventory`, `crew`,

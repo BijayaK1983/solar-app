@@ -649,11 +649,30 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* Backup copy of the Supabase library, used only if the first download was blocked
+   (some company/public networks block cdn.jsdelivr.net). */
+if(!window.supabase){
+  document.write('<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>');
+}
+</script>
+<script>
 /* ---------- Supabase ---------- */
 const SUPABASE_URL = 'https://ddrvhfbcqobkscaanfqw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkcnZoZmJjcW9ia3NjYWFuZnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNzc5MTEsImV4cCI6MjA5OTg1MzkxMX0.r7MYLHGewukyG0pL78XMdUr1uaEfKeVtPGAcvFaTtlM';
 const SHARED_LOGIN_EMAIL = 'team@solarops.app';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// If the library could not be downloaded at all, sb stays null and the login screen
+// explains why, instead of the whole app silently freezing.
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const NETWORK_HELP = 'This network may be blocking it (company Wi-Fi often does). Try another connection, e.g. mobile data, then reload the page.';
+function showLoginError(msg){
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+function isNetworkError(error){
+  if(!error) return false;
+  const text = `${error.name||''} ${error.message||''}`.toLowerCase();
+  return error.status === 0 || /retryablefetch|failed to fetch|networkerror|load failed|network request failed/.test(text);
+}
 
 /* ---------- Stages ---------- */
 const STAGES = [
@@ -817,13 +836,24 @@ function renderEverything(){
 
 /* ---------- Auth ---------- */
 async function handleLogin(){
+  showLoginError('');
+  if(!sb){ showLoginError('Could not load the login service. '+NETWORK_HELP); return; }
   const password = document.getElementById('loginPassword').value;
-  const errEl = document.getElementById('loginError');
-  errEl.style.display = 'none';
-  if(!password){ errEl.textContent = 'Enter the password.'; errEl.style.display = 'block'; return; }
-  const { error } = await sb.auth.signInWithPassword({ email: SHARED_LOGIN_EMAIL, password });
-  if(error){ errEl.textContent = 'Incorrect password.'; errEl.style.display = 'block'; return; }
-  await onAuthenticated();
+  if(!password){ showLoginError('Enter the password.'); return; }
+  let error;
+  try {
+    ({ error } = await sb.auth.signInWithPassword({ email: SHARED_LOGIN_EMAIL, password }));
+  } catch(e){ error = e; }
+  if(error){
+    console.error('login failed', error);
+    showLoginError(isNetworkError(error)
+      ? 'Could not reach the SolarOps database. '+NETWORK_HELP
+      : (error.status === 400 || /invalid login/i.test(error.message||'')) ? 'Incorrect password.'
+      : 'Login failed: '+(error.message||error));
+    return;
+  }
+  try { await onAuthenticated(); }
+  catch(e){ console.error('loading data failed', e); showLoginError('Logged in, but loading the data failed. '+NETWORK_HELP); }
 }
 async function handleLogout(){
   await sb.auth.signOut();
@@ -840,12 +870,16 @@ async function onAuthenticated(){
   subscribeRealtime();
 }
 async function initAuth(){
-  const { data: { session } } = await sb.auth.getSession();
-  if(session){
-    await onAuthenticated();
-  } else {
+  if(!sb){
     document.getElementById('loginScreen').style.display = 'flex';
+    showLoginError('Could not load the login service. '+NETWORK_HELP);
+    return;
   }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){ await onAuthenticated(); return; }
+  } catch(e){ console.error('session check failed', e); }
+  document.getElementById('loginScreen').style.display = 'flex';
 }
 
 /* ---------- Live sync across devices ---------- */
