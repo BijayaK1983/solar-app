@@ -7,6 +7,10 @@ in the Supabase SQL Editor.
 2. Open the migration file, copy the SQL for the step, paste it into the editor, click **Run** (Cmd + Enter).
 3. Read the result before moving to the next step.
 
+## 2026-09-30_crew_employee_codes.sql
+
+One step: open the file, copy all of it, paste into the SQL Editor, click **Run**. Expect *"Success. No rows returned"*. Existing crew keep a blank code until you edit them in the app (✎) and choose Staff or Workman.
+
 ## 2026-09-27_unique_customer_numbers.sql
 
 **Step 1 — check for duplicates.** Must return *"Success. No rows returned"*. If it lists rows,

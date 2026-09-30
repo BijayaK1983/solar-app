@@ -1,7 +1,7 @@
 (function(){
   const db = { customers:[
     {id:1,name:'Sample Customer',app_no:'PMGSY-2026-0008',work_order_no:'',stage_index:0,stage_dates:{},category:'1KW',price:100000,priority:'Medium'}],
-    teams:[],inventory:[],inventory_movements:[],crew:[],payroll_records:[],assignments:[],app_settings:[{id:1,category_prices:{'1KW':70000,'3KW':195000,'5KW':300000},category_bom:{'1KW':[],'3KW':[],'5KW':[]}}]};
+    teams:[],inventory:[],inventory_movements:[],crew:[{id:1,name:'Old Hand',role:'Helper',pay_type:'Daily Wage',rate:900,pay_status:'pending'}],payroll_records:[],assignments:[],app_settings:[{id:1,category_prices:{'1KW':70000,'3KW':195000,'5KW':300000},category_bom:{'1KW':[],'3KW':[],'5KW':[]}}]};
   window.__db = db; window.__log = [];
   window.__unique = true;
   let nextId = 100;
@@ -20,11 +20,13 @@
       then(res, rej){ return new Promise(r=>r(run())).then(res, rej); }
     };
     function dup(row, id){
-      if(!window.__unique || table!=='customers') return null;
-      for(const col of ['app_no','work_order_no']){
+      if(!window.__unique) return null;
+      if(window.__noEmpCols && table==='crew' && ('emp_code' in row)) return {code:'PGRST204', message:"Could not find the 'emp_category' column of 'crew' in the schema cache"};
+      const cols = table==='customers' ? ['app_no','work_order_no'] : table==='crew' ? ['emp_code'] : [];
+      for(const col of cols){
         const v=(row[col]||'').trim().toUpperCase();
-        if(v && db.customers.some(r=>r.id!==id && (r[col]||'').trim().toUpperCase()===v))
-          return {code:'23505', message:`duplicate key value violates unique constraint "customers_${col}_unique"`};
+        if(v && db[table].some(r=>r.id!==id && (r[col]||'').trim().toUpperCase()===v))
+          return {code:'23505', message:`duplicate key value violates unique constraint "${table}_${col}_unique"`};
       }
       return null;
     }
@@ -35,7 +37,7 @@
       const rows = db[table] || (db[table]=[]);
       const match = rows.filter(r=>st.filters.every(f=>f(r)));
       if(st.op==='insert'){ const e=dup(st.row); if(e) return {data:null,error:e}; const r={...st.row,id:nextId++}; rows.push(r); return {data: st.single? r : [r], error:null}; }
-      if(st.op==='update'){ for(const r of match){ const e=dup({...r,...st.row}, r.id); if(e) return {data:null,error:e}; } match.forEach(r=>Object.assign(r,st.row)); return {data: st.single? match[0]: match, error:null}; }
+      if(st.op==='update'){ for(const r of match){ const e=dup({...r,...st.row}, r.id); if(e) return {data:null,error:e}; } match.forEach(r=>Object.assign(r,st.row)); return {data: st.single? (match[0]?{...match[0]}:null): match, error:null}; }
       if(st.op==='delete'){ db[table]=rows.filter(r=>!match.includes(r)); return {data:null,error:null}; }
       if(st.op==='upsert'){ return {data:st.row,error:null}; }
       if(st.single||st.maybe) return {data: match[0]||null, error: (st.single&&!match[0])?{message:'no rows'}:null};

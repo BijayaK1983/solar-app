@@ -410,7 +410,7 @@
       </div>
       <div class="card">
         <table>
-          <thead><tr><th>Name</th><th>Role</th><th>Contact</th><th>Pay Type</th><th>Rate</th><th>Assigned To</th><th>Payment Status</th><th></th></tr></thead>
+          <thead><tr><th>Emp Code</th><th>Name</th><th>Role</th><th>Contact</th><th>Pay Type</th><th>Rate</th><th>Assigned To</th><th>Payment Status</th><th></th></tr></thead>
           <tbody id="crewBody"></tbody>
         </table>
         <div class="empty" id="crewEmpty" style="display:none;">No crew members yet.</div>
@@ -617,8 +617,19 @@
 <!-- CREW MODAL -->
 <div class="overlay" id="crewOverlay">
   <div class="modal">
-    <h2>Add Crew Member</h2>
-    <div class="field"><label>Name</label><input id="crewName" placeholder="Suresh Patil"></div>
+    <h2 id="crewModalTitle">Add Crew Member</h2>
+    <div class="field row2">
+      <div><label>Category *</label>
+        <select id="crewCategory" onchange="onCrewCategoryChange()">
+          <option value="">— Select —</option>
+          <option value="Staff">Staff (E001, E002 …)</option>
+          <option value="Workman">Workman (W001, W002 …)</option>
+        </select>
+      </div>
+      <div><label>Employee Code</label><input id="crewEmpCode" placeholder="Chosen from category"></div>
+    </div>
+    <div class="hint" style="margin:-6px 0 10px;">The next free code is filled in when you pick the category; you can type over it.</div>
+    <div class="field"><label>Name *</label><input id="crewName" placeholder="Suresh Patil"></div>
     <div class="field row2">
       <div><label>Role</label><input id="crewRole" placeholder="Installer / Electrician"></div>
       <div><label>Contact</label><input id="crewPhone" placeholder="+91 90000 00000"></div>
@@ -640,9 +651,10 @@
         <option value="paid">Paid</option>
       </select>
     </div>
+    <div class="form-error" id="crewError" role="alert" style="display:none;"></div>
     <div class="modal-actions">
       <button class="btn outline" onclick="closeModal('crewOverlay')">Cancel</button>
-      <button class="btn" onclick="saveCrew()">Save Crew Member</button>
+      <button class="btn" id="crewSaveBtn" onclick="saveCrew()">Save Crew Member</button>
     </div>
   </div>
 </div>
@@ -779,7 +791,8 @@ function rowToMovement(r){
     customerId:r.customer_id||null, createdAt:r.created_at, updatedByDeviceName:r.updated_by_device_name||'' };
 }
 function rowToCrew(r){
-  return { id:r.id, name:r.name, role:r.role||'', phone:r.phone||'', payType:r.pay_type||'Daily Wage',
+  return { id:r.id, name:r.name, empCategory:r.emp_category||'', empCode:r.emp_code||'',
+    role:r.role||'', phone:r.phone||'', payType:r.pay_type||'Daily Wage',
     rate:r.rate||0, assigned:r.assigned||'', payStatus:r.pay_status||'pending',
     updatedByDeviceName:r.updated_by_device_name||'' };
 }
@@ -789,7 +802,8 @@ function rowToPayroll(r){
     updatedByDeviceName:r.updated_by_device_name||'' };
 }
 function crewToRow(c){
-  return { name:c.name, role:c.role, phone:c.phone, pay_type:c.payType, rate:c.rate,
+  return { name:c.name, emp_category:c.empCategory||null, emp_code:(c.empCode||'').trim()||null,
+    role:c.role, phone:c.phone, pay_type:c.payType, rate:c.rate,
     assigned:c.assigned, pay_status:c.payStatus, ...deviceStamp() };
 }
 function rowToAssignment(r){
@@ -1669,21 +1683,79 @@ function renderInventory(){
 }
 
 /* ---------- CREW ---------- */
-function openCrewModal(){
-  document.getElementById('crewName').value='';
-  document.getElementById('crewRole').value='';
-  document.getElementById('crewPhone').value='';
-  document.getElementById('crewPayType').value='Daily Wage';
-  document.getElementById('crewRate').value='';
-  document.getElementById('crewAssigned').value='';
-  document.getElementById('crewPayStatus').value='pending';
+/* Employee codes: Staff = E001, E002 …  Workman = W001, W002 …
+   Next number = highest existing code of that category + 1 (never reuses a deleted
+   code). The database has a unique index on emp_code
+   (migrations/2026-09-30_crew_employee_codes.sql), so two devices can't save the
+   same code; if an auto-generated code collides, we fetch the real next one and retry. */
+const EMP_PREFIX = { Staff:'E', Workman:'W' };
+let editingCrewId = null;
+let crewAutoCode = '';
+function nextEmpCodeFrom(category, codes){
+  const prefix = EMP_PREFIX[category]; if(!prefix) return '';
+  const re = new RegExp(`^${prefix}(\\d+)$`, 'i');
+  let max = 0;
+  codes.forEach(v=>{ const m = re.exec((v||'').trim()); if(m){ const n = parseInt(m[1],10); if(n>max) max = n; } });
+  return prefix + String(max+1).padStart(3,'0');
+}
+function nextEmpCode(category){ return nextEmpCodeFrom(category, crewList.map(c=>c.empCode)); }
+async function freshEmpCodeFromDb(category){
+  const { data, error } = await sb.from('crew').select('emp_code').ilike('emp_code', `${EMP_PREFIX[category]}%`);
+  return nextEmpCodeFrom(category, crewList.map(c=>c.empCode).concat(error ? [] : (data||[]).map(r=>r.emp_code)));
+}
+function showCrewError(msg){
+  const el = document.getElementById('crewError');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+function onCrewCategoryChange(){
+  const cat = document.getElementById('crewCategory').value;
+  const input = document.getElementById('crewEmpCode');
+  const current = input.value.trim();
+  const editing = editingCrewId ? crewList.find(c=>c.id===editingCrewId) : null;
+  // Keep a code the person typed, or the saved code if the category didn't change.
+  if(current && current !== crewAutoCode){
+    if(!editing || editing.empCategory !== cat || current !== editing.empCode) return;
+  }
+  if(editing && editing.empCode && editing.empCategory === cat){ input.value = editing.empCode; crewAutoCode = ''; return; }
+  crewAutoCode = cat ? nextEmpCode(cat) : '';
+  input.value = crewAutoCode;
+}
+function openCrewModal(existing){
+  editingCrewId = existing ? existing.id : null;
+  crewAutoCode = '';
+  showCrewError('');
+  document.getElementById('crewModalTitle').textContent = existing ? 'Edit Crew Member' : 'Add Crew Member';
+  document.getElementById('crewCategory').value = existing?.empCategory || '';
+  document.getElementById('crewEmpCode').value = existing?.empCode || '';
+  document.getElementById('crewName').value = existing?.name || '';
+  document.getElementById('crewRole').value = existing?.role || '';
+  document.getElementById('crewPhone').value = existing?.phone || '';
+  document.getElementById('crewPayType').value = existing?.payType || 'Daily Wage';
+  document.getElementById('crewRate').value = existing ? (existing.rate || '') : '';
+  document.getElementById('crewAssigned').value = existing?.assigned || '';
+  document.getElementById('crewPayStatus').value = existing?.payStatus || 'pending';
   document.getElementById('crewOverlay').classList.add('open');
 }
+function editCrew(id){ const c = crewList.find(x=>x.id===id); if(c) openCrewModal(c); }
+function isMissingColumnError(error){
+  return !!error && (error.code === 'PGRST204' || /could not find the '.*' column/i.test(error.message||''));
+}
 async function saveCrew(){
+  const btn = document.getElementById('crewSaveBtn');
+  if(btn.disabled || !document.getElementById('crewOverlay').classList.contains('open')) return;
+  showCrewError('');
+  const empCategory = document.getElementById('crewCategory').value;
   const name = document.getElementById('crewName').value.trim();
-  if(!name){ alert('Please enter a name.'); return; }
-  const newCrew = {
-    name,
+  if(!empCategory){ showCrewError('Please choose a category: Staff or Workman.'); return; }
+  if(!name){ showCrewError('Please enter a name.'); return; }
+  let empCode = document.getElementById('crewEmpCode').value.trim().toUpperCase();
+  if(!empCode){ empCode = crewAutoCode = nextEmpCode(empCategory); }
+  const clash = crewList.find(c=>c.id!==editingCrewId && (c.empCode||'').trim().toUpperCase()===empCode);
+  if(clash && empCode !== crewAutoCode){ showCrewError(`Employee code ${empCode} is already used by ${clash.name}.`); return; }
+  if(clash){ empCode = crewAutoCode = nextEmpCode(empCategory); }
+  const draft = {
+    ...(editingCrewId ? crewList.find(c=>c.id===editingCrewId) : {}),
+    name, empCategory, empCode,
     role: document.getElementById('crewRole').value,
     phone: document.getElementById('crewPhone').value,
     payType: document.getElementById('crewPayType').value,
@@ -1691,11 +1763,42 @@ async function saveCrew(){
     assigned: document.getElementById('crewAssigned').value,
     payStatus: document.getElementById('crewPayStatus').value
   };
-  const { data, error } = await sb.from('crew').insert(crewToRow(newCrew)).select().single();
-  if(error){ alert('Failed to save: '+error.message); return; }
-  crewList.push(rowToCrew(data));
-  closeModal('crewOverlay');
-  renderCrew(); renderPayroll(); renderDashboard();
+  btn.disabled = true; const label = btn.textContent; btn.textContent = 'Saving…';
+  try {
+    let res, note = '';
+    for(let attempt=0; attempt<3; attempt++){
+      const write = ()=> editingCrewId
+        ? sb.from('crew').update(crewToRow(draft)).eq('id', editingCrewId).select().single()
+        : sb.from('crew').insert(crewToRow(draft)).select().single();
+      res = await withAuthRetry(write);
+      if(res.error && res.error.code === '23505' && draft.empCode === crewAutoCode){
+        const fresh = await freshEmpCodeFromDb(empCategory);
+        note = `Code ${draft.empCode} was just taken on another device, so this person was saved as ${fresh}.`;
+        draft.empCode = crewAutoCode = fresh;
+        continue;
+      }
+      break;
+    }
+    if(res.error){
+      console.error('saveCrew failed', res.error);
+      showCrewError(isMissingColumnError(res.error)
+        ? 'The database needs a one-time update for employee codes: run migrations/2026-09-30_crew_employee_codes.sql in the Supabase SQL Editor, then save again.'
+        : res.error.code === '23505' ? `Employee code ${draft.empCode} is already in use. Please choose another.`
+        : 'Could not save: '+res.error.message);
+      return;
+    }
+    const saved = rowToCrew(res.data);
+    if(editingCrewId){ const i = crewList.findIndex(c=>c.id===editingCrewId); if(i>=0) crewList[i] = saved; }
+    else crewList.push(saved);
+    closeModal('crewOverlay');
+    renderCrew(); renderPayroll(); renderDashboard();
+    if(note) alert(note);
+  } catch(e){
+    console.error('saveCrew threw', e);
+    showCrewError('Could not save: '+(e && e.message ? e.message : e)+'. Check the internet connection and try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
 }
 async function deleteCrew(id){
   if(!confirm('Delete this crew member?')) return;
@@ -1713,6 +1816,7 @@ function renderCrew(){
   const body = document.getElementById('crewBody');
   body.innerHTML = crewList.map(c=>`
     <tr>
+      <td>${c.empCode ? `<strong>${c.empCode}</strong><div class="hint">${c.empCategory||''}</div>` : '<span class="hint">—</span>'}</td>
       <td><strong>${c.name}</strong></td>
       <td>${c.role||'—'}</td>
       <td>${c.phone||'—'}</td>
@@ -1720,7 +1824,7 @@ function renderCrew(){
       <td>${fmtMoney(c.rate)}</td>
       <td>${c.assigned||'—'}</td>
       <td><span class="badge ${c.payStatus}" style="cursor:pointer" onclick="toggleCrewPay(${c.id})">${c.payStatus==='paid'?'Paid':'Pending'}</span></td>
-      <td><button class="icon-btn" onclick="deleteCrew(${c.id})">✕</button></td>
+      <td style="white-space:nowrap;"><button class="icon-btn" style="color:var(--blue)" title="Edit" onclick="editCrew(${c.id})">✎</button><button class="icon-btn" title="Delete" onclick="deleteCrew(${c.id})">✕</button></td>
     </tr>`).join('');
   document.getElementById('crewEmpty').style.display = crewList.length? 'none':'block';
 }
@@ -1797,7 +1901,7 @@ function renderPayroll(){
     const crew = crewList.find(c=>c.id===record.crewId);
     return {record, crew};
   }).filter(({record, crew})=>{
-    const matchesSearch = `${crew?.name||''} ${crew?.role||''}`.toLowerCase().includes(search);
+    const matchesSearch = `${crew?.empCode||''} ${crew?.name||''} ${crew?.role||''}`.toLowerCase().includes(search);
     return matchesSearch && (!statusFilter || record.status===statusFilter);
   });
   const pending = periodRecords.filter(r=>r.status==='pending');
@@ -1809,7 +1913,7 @@ function renderPayroll(){
     <div class="card"><div class="label">Paid</div><div class="value" style="color:var(--green)">${paid.length}</div><div class="sub">${fmtMoney(paid.reduce((sum,r)=>sum+Number(r.amount||0),0))}</div></div>`;
   document.getElementById('payrollBody').innerHTML = rows.map(({record, crew})=>`
     <tr>
-      <td><strong>${crew?.name||'Unknown crew member'}</strong></td>
+      <td><strong>${crew?.name||'Unknown crew member'}</strong>${crew?.empCode ? `<div class="hint">${crew.empCode}</div>` : ''}</td>
       <td>${crew?.role||'—'}</td>
       <td>${crew?.payType||'—'}</td>
       <td>${fmtMoney(record.amount)}</td>

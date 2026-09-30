@@ -15,6 +15,7 @@ pip3 install playwright && python3 -m playwright install chromium   # first time
 npm i @supabase/supabase-js@2                                        # first time only (login tests)
 python3 test_save_customer.py
 python3 test_login.py
+python3 test_crew_codes.py
 ```
 
 ## What it checks
@@ -31,6 +32,7 @@ python3 test_login.py
 | 8 | Edit a customer | Change saved |
 | 9 | Edit fails | On-screen data left unchanged, red message |
 
+`test_crew_codes.py` checks crew employee codes (E001…/W001…, duplicates, edit, migration not yet run).
 `test_login.py` checks the login screen: normal login, the main library download blocked
 (falls back to a second download site), both blocked (clear message instead of a frozen
 screen), and the database unreachable (clear message).

@@ -112,6 +112,16 @@ The `<script>` block is organized top-to-bottom as:
   the "Work Order Created" stage if they aren't already past it, rolling the local
   object back if the write fails), or the "Generate" button in the customer modal
   (`fillWorkOrderNo()`: fills the input only — nothing persists until Save).
+- **Crew employee codes**: each crew member has a category, Staff or Workman, and an
+  employee code: `E001`, `E002` … for Staff and `W001`, `W002` … for Workmen.
+  Picking the category in the crew form fills in the next free code
+  (`nextEmpCode()`: highest existing code of that prefix + 1, so a deleted code is never
+  reused). The code stays editable. A unique index in the database
+  (`migrations/2026-09-30_crew_employee_codes.sql`) blocks duplicates. If an
+  auto-generated code collides with one another device just saved, `saveCrew()` fetches
+  the real next code and retries; a hand-typed duplicate is rejected with a message.
+  Crew members can now be edited (✎) as well as added and deleted, which is how existing
+  crew get their category and code.
 - **Task Assignment's three linked dropdowns**: Customer / Application No. / Work
   Order No. are three different *labels* for selecting the same customer. Changing
   any one calls `onAssignIdentifierChange()`, which syncs the other two selects to
