@@ -151,41 +151,37 @@
     overflow-y:auto;padding:30px 0;
   }
   .overlay.open{display:flex;}
-  /* ---------- Login screen: animated "sunlight to grid" scene ---------- */
-  #loginScreen{overflow:hidden;background:#d6f1f3 !important;}
-  .login-scene{position:absolute;inset:0;pointer-events:none;}
-  .login-scene svg{width:100%;height:100%;display:block;}
-  #loginScreen .modal{position:relative;z-index:1;background:rgba(255,255,255,.88);
-    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 24px 60px rgba(40,90,80,.25);}
-  .login-tagline{position:absolute;left:0;right:0;bottom:18px;text-align:center;z-index:1;
-    color:#2c5a4a;font-size:13px;letter-spacing:.04em;}
-  .login-tagline b{color:#f5941f;font-weight:700;}
-  .is-bob{animation:isBob 6s ease-in-out infinite;}
-  .is-bob2{animation-duration:7s;animation-delay:-2s;}
-  .is-bob3{animation-duration:5s;}
-  .is-spin{animation:isSpin 3.2s linear infinite;}
-  .is-cloud{animation:isDrift linear infinite;}
-  .is-float{animation:isFloat 8s ease-in-out infinite;}
-  .is-sunglow{animation:isPulse 5s ease-in-out infinite;}
-  .is-glint{animation:isGlint 5s ease-in-out infinite;}
-  .is-win{animation:isWin 4s ease-in-out infinite;}
-  .is-bat{animation:isBat 2s steps(1) infinite;}
-  .is-sway{animation:isSway 5s ease-in-out infinite alternate;}
-  .is-spark{animation:isSpark 4s ease-out infinite;opacity:0;}
-  @keyframes isBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-  @keyframes isSpin{to{transform:rotate(360deg)}}
-  @keyframes isDrift{from{transform:translateX(-300px)}to{transform:translateX(1750px)}}
-  @keyframes isFloat{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(-30px);opacity:.7}}
-  @keyframes isPulse{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.1);opacity:1}}
-  @keyframes isGlint{0%,40%{transform:translateX(0)}80%,100%{transform:translateX(160px)}}
-  @keyframes isWin{0%,100%{opacity:.75}50%{opacity:1}}
-  @keyframes isBat{0%{opacity:.3}50%{opacity:1}}
-  @keyframes isSway{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
-  @keyframes isSpark{0%{transform:translateY(0);opacity:0}20%{opacity:.9}100%{transform:translateY(-140px);opacity:0}}
-  @media (prefers-reduced-motion: reduce){
-    .is-bob,.is-spin,.is-cloud,.is-float,.is-sunglow,.is-glint,.is-win,.is-bat,.is-sway,.is-spark{animation:none;}
+  /* ---------- Login screen: split layout (brand panel + sign-in form) ---------- */
+  #loginScreen{padding:0;background:#f4f7fa !important;align-items:stretch;justify-content:stretch;}
+  .login-wrap{display:flex;width:100%;min-height:100%;}
+  .login-brand{flex:1.1;position:relative;overflow:hidden;color:#fff;padding:56px 64px;display:flex;flex-direction:column;
+    background:linear-gradient(150deg,#0f2a3f 0%,#16405d 60%,#1b4d6e 100%);}
+  .login-brand::before{content:"";position:absolute;left:0;right:0;bottom:0;top:62%;opacity:.07;
+    background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+    background-size:44px 44px;transform:perspective(900px) rotateX(55deg) scale(1.8);transform-origin:50% 100%;}
+  .login-brand::after{content:"";position:absolute;width:520px;height:520px;right:-180px;top:-200px;border-radius:50%;
+    background:radial-gradient(circle,rgba(245,148,31,.35),rgba(245,148,31,0) 65%);}
+  .login-brand > *{position:relative;z-index:1;}
+  .login-logo{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:700;letter-spacing:.01em;}
+  .login-logo .brand-icon{margin:0;}
+  .login-brand h1{font-size:34px;line-height:1.2;font-weight:700;margin:auto 0 14px;max-width:460px;}
+  .login-brand p.lead{color:rgba(255,255,255,.75);font-size:15px;line-height:1.6;max-width:440px;margin:0 0 28px;}
+  .login-points{list-style:none;padding:0;margin:0 0 auto;display:grid;gap:14px;}
+  .login-points li{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:rgba(255,255,255,.9);}
+  .login-points li span.dot{flex:none;width:26px;height:26px;border-radius:8px;background:rgba(245,148,31,.18);
+    color:#f8b45c;display:grid;place-items:center;font-size:13px;}
+  .login-foot{font-size:12px;color:rgba(255,255,255,.5);margin-top:32px;}
+  .login-panel{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;background:#fff;}
+  .login-form{width:100%;max-width:360px;}
+  .login-form h2{font-size:24px;margin:0 0 6px;}
+  .login-form .hint{margin-bottom:24px;}
+  .login-form .mobile-logo{display:none;}
+  @media (max-width:860px){
+    .login-brand{display:none;}
+    .login-panel{background:#f4f7fa;}
+    .login-form{background:#fff;padding:32px 24px;border-radius:14px;box-shadow:0 10px 30px rgba(15,42,63,.08);}
+    .login-form .mobile-logo{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:22px;}
   }
-  @media (max-width:700px){ .login-tagline{display:none;} }
 
   .modal{
     background:#fff;border-radius:14px;padding:24px 26px;width:560px;max-width:92vw;
@@ -243,80 +239,33 @@
 </head>
 <body>
 
-<div class="overlay open" id="loginScreen" style="position:fixed;background:var(--navy);z-index:100;">
-  <div class="login-scene" aria-hidden="true">
-<svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-<defs>
-<linearGradient id="isSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cdeef9"/><stop offset=".55" stop-color="#e3f7ee"/><stop offset="1" stop-color="#c8ecd6"/></linearGradient>
-<radialGradient id="isSun"><stop offset="0" stop-color="#fffbe6"/><stop offset=".5" stop-color="#ffe9a3"/><stop offset="1" stop-color="#ffd76a"/></radialGradient>
-<radialGradient id="isSunGlow"><stop offset="0" stop-color="#fff3c2" stop-opacity=".9"/><stop offset="1" stop-color="#fff3c2" stop-opacity="0"/></radialGradient>
-<linearGradient id="isGrass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a6e07a"/><stop offset="1" stop-color="#6cc04f"/></linearGradient>
-<linearGradient id="isSoilL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9a26b"/><stop offset="1" stop-color="#a86f42"/></linearGradient>
-<linearGradient id="isSoilR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c48a55"/><stop offset="1" stop-color="#8d5a33"/></linearGradient>
-<linearGradient id="isCell" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fb8f0"/><stop offset=".5" stop-color="#2f6fc4"/><stop offset="1" stop-color="#1d4a8f"/></linearGradient>
-<linearGradient id="isGlint" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
-<radialGradient id="isTree" cx=".35" cy=".3"><stop offset="0" stop-color="#9be27a"/><stop offset=".7" stop-color="#4fae4a"/><stop offset="1" stop-color="#2f8a3c"/></radialGradient>
-<radialGradient id="isTree2" cx=".35" cy=".3"><stop offset="0" stop-color="#c3ef8f"/><stop offset=".7" stop-color="#78c957"/><stop offset="1" stop-color="#4f9e3f"/></radialGradient>
-<radialGradient id="isCloud" cx=".4" cy=".35"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e4f1f7"/></radialGradient>
-<radialGradient id="isShadow"><stop offset="0" stop-color="#2d5b4a" stop-opacity=".22"/><stop offset="1" stop-color="#2d5b4a" stop-opacity="0"/></radialGradient>
-<linearGradient id="isWater" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fe3f2"/><stop offset="1" stop-color="#4fb6d8"/></linearGradient>
-</defs>
-<rect width="1440" height="900" fill="url(#isSky)"/>
-<circle class="is-sunglow" cx="1210" cy="150" r="170" fill="url(#isSunGlow)" style="transform-origin:1210px 150px"/><circle cx="1210" cy="150" r="62" fill="url(#isSun)"/>
-<circle class="is-float" cx="343" cy="490" r="7.7" fill="#ffffff" opacity="0.46" style="animation-delay:-5.0s"/>
-<circle class="is-float" cx="94" cy="12" r="12.4" fill="#ffffff" opacity="0.34" style="animation-delay:-1.9s"/>
-<circle class="is-float" cx="1434" cy="423" r="12.4" fill="#ffffff" opacity="0.42" style="animation-delay:-5.1s"/>
-<circle class="is-float" cx="217" cy="571" r="12.7" fill="#ffffff" opacity="0.43" style="animation-delay:-5.9s"/>
-<circle class="is-float" cx="967" cy="58" r="11.6" fill="#ffffff" opacity="0.46" style="animation-delay:-2.4s"/>
-<circle class="is-float" cx="45" cy="779" r="8.7" fill="#ffffff" opacity="0.50" style="animation-delay:-7.0s"/>
-<circle class="is-float" cx="1028" cy="829" r="7.9" fill="#ffffff" opacity="0.53" style="animation-delay:-3.6s"/>
-<circle class="is-float" cx="1347" cy="791" r="5.0" fill="#ffffff" opacity="0.30" style="animation-delay:-1.7s"/>
-<circle class="is-float" cx="1390" cy="393" r="10.3" fill="#ffffff" opacity="0.36" style="animation-delay:-4.1s"/>
-<circle class="is-float" cx="556" cy="316" r="9.9" fill="#ffffff" opacity="0.45" style="animation-delay:-7.2s"/>
-<circle class="is-float" cx="982" cy="836" r="12.6" fill="#ffffff" opacity="0.60" style="animation-delay:-5.4s"/>
-<circle class="is-float" cx="235" cy="775" r="13.6" fill="#ffffff" opacity="0.57" style="animation-delay:-4.6s"/>
-<circle class="is-float" cx="1028" cy="190" r="12.3" fill="#ffffff" opacity="0.45" style="animation-delay:-2.3s"/>
-<circle class="is-float" cx="91" cy="769" r="13.9" fill="#ffffff" opacity="0.28" style="animation-delay:-6.4s"/>
-<circle class="is-float" cx="591" cy="136" r="6.9" fill="#ffffff" opacity="0.52" style="animation-delay:-7.0s"/>
-<circle class="is-float" cx="64" cy="553" r="4.4" fill="#ffffff" opacity="0.50" style="animation-delay:-2.6s"/>
-<circle class="is-float" cx="1269" cy="883" r="9.1" fill="#ffffff" opacity="0.60" style="animation-delay:-2.5s"/>
-<circle class="is-float" cx="111" cy="540" r="4.3" fill="#ffffff" opacity="0.32" style="animation-delay:-3.3s"/>
-<g class="is-cloud" style="animation-duration:90s;animation-delay:-0s"><g transform="translate(200 140) scale(1.1)"><circle cx="0" cy="0" r="38" fill="url(#isCloud)"/><circle cx="-40" cy="12" r="28" fill="url(#isCloud)"/><circle cx="42" cy="10" r="30" fill="url(#isCloud)"/><circle cx="-14" cy="-20" r="30" fill="url(#isCloud)"/><circle cx="22" cy="-16" r="26" fill="url(#isCloud)"/><rect x="-68" y="10" width="140" height="30" rx="15" fill="url(#isCloud)"/></g></g>
-<g class="is-cloud" style="animation-duration:120s;animation-delay:-40s"><g transform="translate(760 90) scale(0.8)"><circle cx="0" cy="0" r="38" fill="url(#isCloud)"/><circle cx="-40" cy="12" r="28" fill="url(#isCloud)"/><circle cx="42" cy="10" r="30" fill="url(#isCloud)"/><circle cx="-14" cy="-20" r="30" fill="url(#isCloud)"/><circle cx="22" cy="-16" r="26" fill="url(#isCloud)"/><rect x="-68" y="10" width="140" height="30" rx="15" fill="url(#isCloud)"/></g></g>
-<g class="is-cloud" style="animation-duration:100s;animation-delay:-70s"><g transform="translate(1040 320) scale(0.7)"><circle cx="0" cy="0" r="38" fill="url(#isCloud)"/><circle cx="-40" cy="12" r="28" fill="url(#isCloud)"/><circle cx="42" cy="10" r="30" fill="url(#isCloud)"/><circle cx="-14" cy="-20" r="30" fill="url(#isCloud)"/><circle cx="22" cy="-16" r="26" fill="url(#isCloud)"/><rect x="-68" y="10" width="140" height="30" rx="15" fill="url(#isCloud)"/></g></g>
-<g class="is-cloud" style="animation-duration:110s;animation-delay:-20s"><g transform="translate(420 330) scale(0.6)"><circle cx="0" cy="0" r="38" fill="url(#isCloud)"/><circle cx="-40" cy="12" r="28" fill="url(#isCloud)"/><circle cx="42" cy="10" r="30" fill="url(#isCloud)"/><circle cx="-14" cy="-20" r="30" fill="url(#isCloud)"/><circle cx="22" cy="-16" r="26" fill="url(#isCloud)"/><rect x="-68" y="10" width="140" height="30" rx="15" fill="url(#isCloud)"/></g></g>
-<g class="is-bob"><ellipse cx="330" cy="783" rx="211" ry="51" fill="url(#isShadow)"/><path d="M127.4 628.6 L330.0 745.6 L330.0 815.8 Z" fill="#a86f42" /><path d="M532.6 628.6 L330.0 745.6 L330.0 815.8 Z" fill="#7f5030" /><path d="M127.4 628.6 L238.8 693.0 L315.4 730.6 Z" fill="#c08654"  opacity=".7"/><path d="M127.4 628.6 L330.0 745.6 L330.0 717.0 L127.4 600.0 Z" fill="url(#isSoilL)" /><path d="M532.6 628.6 L330.0 745.6 L330.0 717.0 L532.6 600.0 Z" fill="url(#isSoilR)" /><path d="M330.0 483.0 L532.6 600.0 L330.0 717.0 L127.4 600.0 Z" fill="#000" /><path d="M127.4 600.0 L330.0 717.0 L330.0 704.0 L127.4 587.0 Z" fill="#7cc85a" /><path d="M532.6 600.0 L330.0 717.0 L330.0 704.0 L532.6 587.0 Z" fill="#5fae46" /><path d="M330.0 470.0 L532.6 587.0 L330.0 704.0 L127.4 587.0 Z" fill="url(#isGrass)" /><path d="M325.5 618.2 L384.0 652.0 L327.7 684.5 L269.2 650.7 Z" fill="url(#isWater)"  opacity=".9"/><g class="is-sway" style="transform-origin:325px 504px"><rect x="322.3" y="476.5" width="6.3" height="27.3" rx="2" fill="#8a5a33"/><circle cx="325.5" cy="461.8" r="23.1" fill="url(#isTree)"/><circle cx="315.0" cy="472.3" r="14.7" fill="url(#isTree)"/><circle cx="338.1" cy="472.3" r="15.8" fill="url(#isTree)"/></g><g class="is-sway" style="transform-origin:258px 538px"><rect x="255.4" y="515.5" width="5.1" height="22.1" rx="2" fill="#8a5a33"/><circle cx="257.9" cy="503.6" r="18.7" fill="url(#isTree2)"/><circle cx="249.4" cy="512.1" r="11.9" fill="url(#isTree2)"/><circle cx="268.1" cy="512.1" r="12.8" fill="url(#isTree2)"/></g><path d="M280.5 566.2 L361.5 613.0 L361.5 550.6 L280.5 503.8 Z" fill="#f6efe2" /><path d="M433.6 571.4 L361.5 613.0 L361.5 550.6 L433.6 509.0 Z" fill="#e2d3bb" /><path d="M352.5 462.2 L433.6 509.0 L361.5 550.6 L280.5 503.8 Z" fill="#f4ead8" /><path d="M289.5 545.4 L307.5 555.8 L307.5 532.4 L289.5 522.0 Z" fill="#ffd36e"  class="is-win"/><path d="M332.3 570.1 L350.3 580.5 L350.3 557.1 L332.3 546.7 Z" fill="#ffd36e"  class="is-win"/><path d="M415.6 581.8 L395.3 593.5 L395.3 554.5 L415.6 542.8 Z" fill="#b07a4f" /><path d="M384.0 574.0 L368.3 583.1 L368.3 562.3 L384.0 553.2 Z" fill="#ffd36e"  class="is-win"/><path d="M433.6 509.0 L361.5 550.6 L397.5 490.8 Z" fill="#e2d3bb" /><path d="M352.5 455.7 L444.8 509.0 L403.2 494.1 L310.9 440.8 Z" fill="#d9644a" /><path d="M310.9 440.8 L403.2 494.1 L361.5 557.1 L269.2 503.8 Z" fill="#ef7b5c" /><path d="M313.8 455.5 L336.0 468.3 L306.8 512.5 L284.7 499.7 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="1.6"/><clipPath id="isRoof0"><path d="M313.8 455.5 L336.0 468.3 L306.8 512.5 L284.7 499.7 Z" fill="#000" /></clipPath><g clip-path="url(#isRoof0)"><rect class="is-glint" x="225" y="426" width="30" height="90" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:1.0s"/></g><path d="M339.7 470.5 L361.8 483.3 L332.7 527.4 L310.5 514.6 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="1.6"/><clipPath id="isRoof1"><path d="M339.7 470.5 L361.8 483.3 L332.7 527.4 L310.5 514.6 Z" fill="#000" /></clipPath><g clip-path="url(#isRoof1)"><rect class="is-glint" x="251" y="440" width="30" height="90" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:1.3s"/></g><path d="M365.5 485.4 L387.7 498.2 L358.5 542.3 L336.4 529.5 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="1.6"/><clipPath id="isRoof2"><path d="M365.5 485.4 L387.7 498.2 L358.5 542.3 L336.4 529.5 Z" fill="#000" /></clipPath><g clip-path="url(#isRoof2)"><rect class="is-glint" x="276" y="455" width="30" height="90" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:1.6s"/></g><g class="is-sway" style="transform-origin:456px 595px"><rect x="453.8" y="575.3" width="4.5" height="19.5" rx="2" fill="#8a5a33"/><circle cx="456.1" cy="564.8" r="16.5" fill="url(#isTree)"/><circle cx="448.6" cy="572.3" r="10.5" fill="url(#isTree)"/><circle cx="465.1" cy="572.3" r="11.2" fill="url(#isTree)"/></g></g>
-<g class="is-bob is-bob2"><ellipse cx="1150" cy="824" rx="216" ry="53" fill="url(#isShadow)"/><path d="M942.2 678.4 L1150.0 798.4 L1150.0 870.4 Z" fill="#a86f42" /><path d="M1357.8 678.4 L1150.0 798.4 L1150.0 870.4 Z" fill="#7f5030" /><path d="M942.2 678.4 L1056.5 744.4 L1135.5 782.8 Z" fill="#c08654"  opacity=".7"/><path d="M942.2 678.4 L1150.0 798.4 L1150.0 772.0 L942.2 652.0 Z" fill="url(#isSoilL)" /><path d="M1357.8 678.4 L1150.0 798.4 L1150.0 772.0 L1357.8 652.0 Z" fill="url(#isSoilR)" /><path d="M1150.0 532.0 L1357.8 652.0 L1150.0 772.0 L942.2 652.0 Z" fill="#000" /><path d="M942.2 652.0 L1150.0 772.0 L1150.0 760.0 L942.2 640.0 Z" fill="#7cc85a" /><path d="M1357.8 652.0 L1150.0 772.0 L1150.0 760.0 L1357.8 640.0 Z" fill="#5fae46" /><path d="M1150.0 520.0 L1357.8 640.0 L1150.0 760.0 L942.2 640.0 Z" fill="url(#isGrass)" /><g class="is-sway" style="transform-origin:992px 635px"><rect x="989.9" y="617.0" width="4.2" height="18.2" rx="2" fill="#8a5a33"/><circle cx="992.0" cy="607.2" r="15.4" fill="url(#isTree2)"/><circle cx="985.0" cy="614.2" r="9.8" fill="url(#isTree2)"/><circle cx="1000.4" cy="614.2" r="10.5" fill="url(#isTree2)"/></g><path d="M1138.8 565.6 L1152.8 565.6 L1148.8 375.6 L1142.8 375.6 Z" fill="#f4f7fa" stroke="#cfd9e2"/><g class="is-spin" style="transform-origin:1145.8px 375.6px"><path d="M1145.8 375.6 q -10 -40 -2 -98 q 8 30 6 98 Z" fill="#ffffff" stroke="#cfd9e2" transform="rotate(0 1145.8 375.6)"/><path d="M1145.8 375.6 q -10 -40 -2 -98 q 8 30 6 98 Z" fill="#ffffff" stroke="#cfd9e2" transform="rotate(120 1145.8 375.6)"/><path d="M1145.8 375.6 q -10 -40 -2 -98 q 8 30 6 98 Z" fill="#ffffff" stroke="#cfd9e2" transform="rotate(240 1145.8 375.6)"/></g><circle cx="1145.8" cy="375.6" r="7" fill="#e3e9ef" stroke="#b9c6d2"/><path d="M1189.5 598.0 L1189.5 586.0 M1226.9 619.6 L1226.9 607.6 M1253.9 604.0 L1253.9 568.0" stroke="#7d8a96" stroke-width="2.4"/><path d="M1212.4 544.0 L1258.1 570.4 L1231.1 610.0 L1185.3 583.6 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="2"/><path d="M1223.8 550.6 L1196.8 590.2 M1235.2 557.2 L1208.2 596.8 M1246.6 563.8 L1219.6 603.4 M1198.8 563.8 L1244.6 590.2" stroke="#cfe3f7" stroke-opacity=".55" stroke-width="1.2"/><clipPath id="isPc76338"><path d="M1212.4 544.0 L1258.1 570.4 L1231.1 610.0 L1185.3 583.6 Z" fill="#000" /></clipPath><g clip-path="url(#isPc76338)"><rect class="is-glint" x="1105" y="530" width="40" height="120" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:0.00s"/></g><path d="M1247.7 631.6 L1247.7 619.6 M1285.1 653.2 L1285.1 641.2 M1312.1 637.6 L1312.1 601.6" stroke="#7d8a96" stroke-width="2.4"/><path d="M1270.6 577.6 L1316.3 604.0 L1289.3 643.6 L1243.5 617.2 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="2"/><path d="M1282.0 584.2 L1255.0 623.8 M1293.4 590.8 L1266.4 630.4 M1304.8 597.4 L1277.8 637.0 M1257.0 597.4 L1302.8 623.8" stroke="#cfe3f7" stroke-opacity=".55" stroke-width="1.2"/><clipPath id="isPc54355"><path d="M1270.6 577.6 L1316.3 604.0 L1289.3 643.6 L1243.5 617.2 Z" fill="#000" /></clipPath><g clip-path="url(#isPc54355)"><rect class="is-glint" x="1164" y="564" width="40" height="120" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:0.35s"/></g><path d="M1135.5 629.2 L1135.5 617.2 M1172.9 650.8 L1172.9 638.8 M1199.9 635.2 L1199.9 599.2" stroke="#7d8a96" stroke-width="2.4"/><path d="M1158.3 575.2 L1204.0 601.6 L1177.0 641.2 L1131.3 614.8 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="2"/><path d="M1169.7 581.8 L1142.7 621.4 M1181.2 588.4 L1154.2 628.0 M1192.6 595.0 L1165.6 634.6 M1144.8 595.0 L1190.5 621.4" stroke="#cfe3f7" stroke-opacity=".55" stroke-width="1.2"/><clipPath id="isPc21882"><path d="M1158.3 575.2 L1204.0 601.6 L1177.0 641.2 L1131.3 614.8 Z" fill="#000" /></clipPath><g clip-path="url(#isPc21882)"><rect class="is-glint" x="1051" y="562" width="40" height="120" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:0.70s"/></g><path d="M1193.6 662.8 L1193.6 650.8 M1231.1 684.4 L1231.1 672.4 M1258.1 668.8 L1258.1 632.8" stroke="#7d8a96" stroke-width="2.4"/><path d="M1216.5 608.8 L1262.2 635.2 L1235.2 674.8 L1189.5 648.4 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="2"/><path d="M1227.9 615.4 L1200.9 655.0 M1239.4 622.0 L1212.4 661.6 M1250.8 628.6 L1223.8 668.2 M1203.0 628.6 L1248.7 655.0" stroke="#cfe3f7" stroke-opacity=".55" stroke-width="1.2"/><clipPath id="isPc56134"><path d="M1216.5 608.8 L1262.2 635.2 L1235.2 674.8 L1189.5 648.4 Z" fill="#000" /></clipPath><g clip-path="url(#isPc56134)"><rect class="is-glint" x="1109" y="595" width="40" height="120" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:1.05s"/></g><path d="M1081.4 660.4 L1081.4 648.4 M1118.8 682.0 L1118.8 670.0 M1145.8 666.4 L1145.8 630.4" stroke="#7d8a96" stroke-width="2.4"/><path d="M1104.3 606.4 L1150.0 632.8 L1123.0 672.4 L1077.3 646.0 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="2"/><path d="M1115.7 613.0 L1088.7 652.6 M1127.1 619.6 L1100.1 659.2 M1138.6 626.2 L1111.5 665.8 M1090.8 626.2 L1136.5 652.6" stroke="#cfe3f7" stroke-opacity=".55" stroke-width="1.2"/><clipPath id="isPc13502"><path d="M1104.3 606.4 L1150.0 632.8 L1123.0 672.4 L1077.3 646.0 Z" fill="#000" /></clipPath><g clip-path="url(#isPc13502)"><rect class="is-glint" x="997" y="593" width="40" height="120" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:1.40s"/></g><path d="M1139.6 694.0 L1139.6 682.0 M1177.0 715.6 L1177.0 703.6 M1204.0 700.0 L1204.0 664.0" stroke="#7d8a96" stroke-width="2.4"/><path d="M1162.5 640.0 L1208.2 666.4 L1181.2 706.0 L1135.5 679.6 Z" fill="url(#isCell)"  stroke="#e8f1fb" stroke-width="2"/><path d="M1173.9 646.6 L1146.9 686.2 M1185.3 653.2 L1158.3 692.8 M1196.8 659.8 L1169.7 699.4 M1149.0 659.8 L1194.7 686.2" stroke="#cfe3f7" stroke-opacity=".55" stroke-width="1.2"/><clipPath id="isPc91518"><path d="M1162.5 640.0 L1208.2 666.4 L1181.2 706.0 L1135.5 679.6 Z" fill="#000" /></clipPath><g clip-path="url(#isPc91518)"><rect class="is-glint" x="1055" y="626" width="40" height="120" fill="url(#isGlint)" transform="skewX(-30)" style="animation-delay:1.75s"/></g><path d="M1031.5 667.6 L1064.8 686.8 L1064.8 638.8 L1031.5 619.6 Z" fill="#dfe7ec" /><path d="M1098.0 667.6 L1064.8 686.8 L1064.8 638.8 L1098.0 619.6 Z" fill="#c7d3db" /><path d="M1064.8 600.4 L1098.0 619.6 L1064.8 638.8 L1031.5 619.6 Z" fill="#eef3f6" /><path d="M1037.8 664.0 L1058.5 676.0 L1058.5 669.3 L1037.8 657.3 Z" fill="#5ad67d"  class="is-bat" style="animation-delay:0.00s"/><path d="M1037.8 654.4 L1058.5 666.4 L1058.5 659.7 L1037.8 647.7 Z" fill="#5ad67d"  class="is-bat" style="animation-delay:0.45s"/><path d="M1037.8 644.8 L1058.5 656.8 L1058.5 650.1 L1037.8 638.1 Z" fill="#5ad67d"  class="is-bat" style="animation-delay:0.90s"/><path d="M1037.8 635.2 L1058.5 647.2 L1058.5 640.5 L1037.8 628.5 Z" fill="#5ad67d"  class="is-bat" style="animation-delay:1.35s"/><path d="M1077.3 607.6 L1091.8 616.0 L1081.4 622.0 L1066.9 613.6 Z" fill="#9aa9b5" /></g>
-<g class="is-bob is-bob3" style="animation-delay:-1.5s"><ellipse cx="640" cy="842" rx="50" ry="12" fill="url(#isShadow)"/><path d="M591.5 740.4 L640.0 768.4 L640.0 785.2 Z" fill="#a86f42" /><path d="M688.5 740.4 L640.0 768.4 L640.0 785.2 Z" fill="#7f5030" /><path d="M591.5 740.4 L618.2 755.8 L635.2 765.6 Z" fill="#c08654"  opacity=".7"/><path d="M591.5 740.4 L640.0 768.4 L640.0 753.0 L591.5 725.0 Z" fill="url(#isSoilL)" /><path d="M688.5 740.4 L640.0 768.4 L640.0 753.0 L688.5 725.0 Z" fill="url(#isSoilR)" /><path d="M640.0 697.0 L688.5 725.0 L640.0 753.0 L591.5 725.0 Z" fill="#000" /><path d="M591.5 725.0 L640.0 753.0 L640.0 746.0 L591.5 718.0 Z" fill="#7cc85a" /><path d="M688.5 725.0 L640.0 753.0 L640.0 746.0 L688.5 718.0 Z" fill="#5fae46" /><path d="M640.0 690.0 L688.5 718.0 L640.0 746.0 L591.5 718.0 Z" fill="url(#isGrass)" /><g class="is-sway" style="transform-origin:640px 712px"><rect x="638.5" y="699.4" width="3.0" height="13.0" rx="2" fill="#8a5a33"/><circle cx="640.0" cy="692.4" r="11.0" fill="url(#isTree2)"/><circle cx="635.0" cy="697.4" r="7.0" fill="url(#isTree2)"/><circle cx="646.0" cy="697.4" r="7.5" fill="url(#isTree2)"/></g></g>
-<g class="is-bob is-bob3" style="animation-delay:-3.0s"><ellipse cx="890" cy="300" rx="32" ry="8" fill="url(#isShadow)"/><path d="M858.8 207.2 L890.0 225.2 L890.0 236.0 Z" fill="#a86f42" /><path d="M921.2 207.2 L890.0 225.2 L890.0 236.0 Z" fill="#7f5030" /><path d="M858.8 207.2 L876.0 217.1 L886.4 223.7 Z" fill="#c08654"  opacity=".7"/><path d="M858.8 207.2 L890.0 225.2 L890.0 212.0 L858.8 194.0 Z" fill="url(#isSoilL)" /><path d="M921.2 207.2 L890.0 225.2 L890.0 212.0 L921.2 194.0 Z" fill="url(#isSoilR)" /><path d="M890.0 176.0 L921.2 194.0 L890.0 212.0 L858.8 194.0 Z" fill="#000" /><path d="M858.8 194.0 L890.0 212.0 L890.0 206.0 L858.8 188.0 Z" fill="#7cc85a" /><path d="M921.2 194.0 L890.0 212.0 L890.0 206.0 L921.2 188.0 Z" fill="#5fae46" /><path d="M890.0 170.0 L921.2 188.0 L890.0 206.0 L858.8 188.0 Z" fill="url(#isGrass)" /><g class="is-sway" style="transform-origin:890px 189px"><rect x="888.5" y="176.2" width="3.0" height="13.0" rx="2" fill="#8a5a33"/><circle cx="890.0" cy="169.2" r="11.0" fill="url(#isTree2)"/><circle cx="885.0" cy="174.2" r="7.0" fill="url(#isTree2)"/><circle cx="896.0" cy="174.2" r="7.5" fill="url(#isTree2)"/></g></g>
-<circle class="is-spark" cx="1288" cy="582" r="2.1" fill="#fff6b0" style="animation-delay:-3.5s"/>
-<circle class="is-spark" cx="1187" cy="694" r="3.3" fill="#fff6b0" style="animation-delay:-1.5s"/>
-<circle class="is-spark" cx="1237" cy="633" r="3.0" fill="#fff6b0" style="animation-delay:-2.4s"/>
-<circle class="is-spark" cx="1270" cy="647" r="3.4" fill="#fff6b0" style="animation-delay:-2.0s"/>
-<circle class="is-spark" cx="1227" cy="661" r="2.4" fill="#fff6b0" style="animation-delay:-1.2s"/>
-<circle class="is-spark" cx="1412" cy="633" r="2.8" fill="#fff6b0" style="animation-delay:-0.0s"/>
-<circle class="is-spark" cx="1221" cy="641" r="2.0" fill="#fff6b0" style="animation-delay:-2.5s"/>
-<circle class="is-spark" cx="1295" cy="568" r="2.9" fill="#fff6b0" style="animation-delay:-1.9s"/>
-<circle class="is-spark" cx="1311" cy="609" r="3.1" fill="#fff6b0" style="animation-delay:-3.0s"/>
-<circle class="is-spark" cx="1088" cy="568" r="3.0" fill="#fff6b0" style="animation-delay:-3.9s"/>
-<circle class="is-spark" cx="1165" cy="624" r="2.9" fill="#fff6b0" style="animation-delay:-1.3s"/>
-<circle class="is-spark" cx="1204" cy="604" r="2.6" fill="#fff6b0" style="animation-delay:-2.4s"/>
-<circle class="is-spark" cx="1182" cy="613" r="3.2" fill="#fff6b0" style="animation-delay:-0.1s"/>
-<circle class="is-spark" cx="1274" cy="663" r="2.5" fill="#fff6b0" style="animation-delay:-0.9s"/>
-</svg>
+<div class="overlay open" id="loginScreen" style="position:fixed;z-index:100;">
+  <div class="login-wrap">
+    <aside class="login-brand">
+      <div class="login-logo"><div class="brand-icon">☀️</div> SolarOps</div>
+      <h1>Run your solar installation business in one place.</h1>
+      <p class="lead">Customers, work orders, crews, stock and payroll — shared live across every device your team uses.</p>
+      <ul class="login-points">
+        <li><span class="dot">✓</span><span>Customer pipeline from first enquiry to grid connection</span></li>
+        <li><span class="dot">✓</span><span>Crew assignments, employee codes and monthly payroll</span></li>
+        <li><span class="dot">✓</span><span>Inventory with automatic stock deduction per installation</span></li>
+      </ul>
+      <div class="login-foot">SolarOps · Installation Business Manager</div>
+    </aside>
+    <main class="login-panel">
+      <div class="login-form">
+        <div class="mobile-logo"><div class="brand-icon">☀️</div> SolarOps</div>
+        <h2>Sign in</h2>
+        <p class="hint">Enter your team's shared password to continue.</p>
+        <div class="field">
+          <label>Team Password</label>
+          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleLogin()">
+        </div>
+        <button class="btn" style="width:100%;padding:12px;" onclick="handleLogin()">Log In</button>
+        <div class="hint" id="loginError" style="display:none;color:var(--red);margin-top:12px;margin-bottom:0;"></div>
+      </div>
+    </main>
   </div>
-  <div class="modal" style="text-align:center;">
-    <div class="brand-icon" style="margin:0 auto 14px;">☀️</div>
-    <h2>SolarOps Login</h2>
-    <p class="hint" style="margin-bottom:16px;">Enter your team's shared password to access the shared data.</p>
-    <div class="field" style="text-align:left;">
-      <label>Team Password</label>
-      <input id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')handleLogin()">
-    </div>
-    <button class="btn" style="width:100%;" onclick="handleLogin()">Log In</button>
-    <div class="hint" id="loginError" style="display:none;color:var(--red);margin-top:10px;"></div>
-  </div>
-  <div class="login-tagline">Clean energy from sun <b>&amp;</b> wind <b>→</b> stored <b>→</b> powering homes</div>
 </div>
 
 <div class="app" style="display:none;">
@@ -2151,14 +2100,6 @@ if('serviceWorker' in navigator){
 }
 
 /* ---------- Init ---------- */
-(function(){
-  const svg = document.querySelector('.login-scene svg');
-  if(!svg) return;
-  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) svg.pauseAnimations();
-  // Landscape screens: fill the screen. Portrait (phones): show the whole scene along the bottom.
-  const fit = ()=> svg.setAttribute('preserveAspectRatio', innerWidth/innerHeight < 1 ? 'xMidYMax meet' : 'xMidYMid slice');
-  fit(); addEventListener('resize', fit);
-})();
 initAuth();
 </script>
 </body>
