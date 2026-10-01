@@ -151,6 +151,30 @@
     overflow-y:auto;padding:30px 0;
   }
   .overlay.open{display:flex;}
+  /* ---------- Login screen: animated "sunlight to grid" scene ---------- */
+  #loginScreen{overflow:hidden;background:#0b2233 !important;}
+  .login-scene{position:absolute;inset:0;pointer-events:none;}
+  .login-scene svg{width:100%;height:100%;display:block;}
+  #loginScreen .modal{position:relative;z-index:1;background:rgba(255,255,255,.94);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  .login-tagline{position:absolute;left:0;right:0;bottom:18px;text-align:center;z-index:1;
+    color:rgba(255,255,255,.75);font-size:13px;letter-spacing:.04em;}
+  .login-tagline b{color:#ffd27a;font-weight:600;}
+  .ls-sun-glow{animation:lsPulse 4s ease-in-out infinite;transform-origin:1190px 170px;}
+  .ls-rays{animation:lsSpin 40s linear infinite;transform-origin:1190px 170px;}
+  .ls-current{stroke-dasharray:10 14;animation:lsFlow 1.2s linear infinite;}
+  .ls-window{animation:lsGlow 3s ease-in-out infinite;}
+  .ls-panel-shine{animation:lsShine 5s ease-in-out infinite;}
+  @keyframes lsPulse{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.9;transform:scale(1.08)}}
+  @keyframes lsSpin{to{transform:rotate(360deg)}}
+  @keyframes lsFlow{to{stroke-dashoffset:-48}}
+  @keyframes lsGlow{0%,100%{opacity:.55}50%{opacity:1}}
+  @keyframes lsShine{0%,60%,100%{opacity:0}75%{opacity:.55}}
+  @media (prefers-reduced-motion: reduce){
+    .ls-sun-glow,.ls-rays,.ls-current,.ls-window,.ls-panel-shine{animation:none;}
+  }
+  @media (max-width:700px){ .login-tagline{display:none;} }
+
   .modal{
     background:#fff;border-radius:14px;padding:24px 26px;width:560px;max-width:92vw;
     max-height:88vh;overflow-y:auto;
@@ -208,6 +232,57 @@
 <body>
 
 <div class="overlay open" id="loginScreen" style="position:fixed;background:var(--navy);z-index:100;">
+  <div class="login-scene" aria-hidden="true">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="lsSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#0b2233"/><stop offset=".55" stop-color="#16405d"/><stop offset=".85" stop-color="#e58a2c" stop-opacity=".55"/><stop offset="1" stop-color="#f5941f" stop-opacity=".7"/>
+        </linearGradient>
+        <radialGradient id="lsSunCore"><stop offset="0" stop-color="#fff6d5"/><stop offset=".6" stop-color="#ffd166"/><stop offset="1" stop-color="#f5941f"/></radialGradient>
+        <radialGradient id="lsSunHalo"><stop offset="0" stop-color="#ffd166" stop-opacity=".7"/><stop offset="1" stop-color="#ffd166" stop-opacity="0"/></radialGradient>
+        <linearGradient id="lsBeam" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></linearGradient>
+        <linearGradient id="lsCell" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6fb1"/><stop offset="1" stop-color="#123b66"/></linearGradient>
+        <filter id="lsSoft" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="1.6"/></filter>
+      </defs>
+      <rect width="1440" height="900" fill="url(#lsSky)"/>
+      <!-- stars -->
+      <g fill="#fff" opacity=".5"><circle cx="120" cy="90" r="1.2"/><circle cx="260" cy="160" r="1"/><circle cx="420" cy="70" r="1.4"/><circle cx="610" cy="130" r="1"/><circle cx="760" cy="60" r="1.2"/><circle cx="900" cy="140" r="1"/><circle cx="70" cy="240" r="1"/><circle cx="1350" cy="320" r="1.1"/></g>
+      <!-- sun -->
+      <circle class="ls-sun-glow" cx="1190" cy="170" r="150" fill="url(#lsSunHalo)"/>
+      <g class="ls-rays" stroke="#ffd166" stroke-width="3" stroke-linecap="round" opacity=".55">
+        <line x1="1190" y1="60" x2="1190" y2="30"/><line x1="1190" y1="280" x2="1190" y2="310"/><line x1="1080" y1="170" x2="1050" y2="170"/><line x1="1300" y1="170" x2="1330" y2="170"/>
+        <line x1="1112" y1="92" x2="1091" y2="71"/><line x1="1268" y1="248" x2="1289" y2="269"/><line x1="1268" y1="92" x2="1289" y2="71"/><line x1="1112" y1="248" x2="1091" y2="269"/>
+      </g>
+      <circle cx="1190" cy="170" r="70" fill="url(#lsSunCore)"/>
+      <!-- sunlight travelling to the panels -->
+      <path id="lsRay0" d="M1135 205 C 900 250, 600 380, 300 512" fill="none" stroke="url(#lsBeam)" stroke-width="1.2" opacity=".35"/><path id="lsRay1" d="M1140 220 C 920 300, 640 430, 350 538" fill="none" stroke="url(#lsBeam)" stroke-width="1.2" opacity=".35"/><path id="lsRay2" d="M1130 190 C 860 230, 560 350, 395 508" fill="none" stroke="url(#lsBeam)" stroke-width="1.2" opacity=".35"/><path id="lsRay3" d="M1150 230 C 960 330, 700 470, 425 545" fill="none" stroke="url(#lsBeam)" stroke-width="1.2" opacity=".35"/>
+      <circle r="3.2" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="0.00s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay0"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="0.00s" repeatCount="indefinite"/></circle><circle r="2.4" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="1.40s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay0"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="1.40s" repeatCount="indefinite"/></circle><circle r="2.8" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="2.80s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay0"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="2.80s" repeatCount="indefinite"/></circle><circle r="3.2" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="0.35s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay1"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="0.35s" repeatCount="indefinite"/></circle><circle r="2.4" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="1.75s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay1"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="1.75s" repeatCount="indefinite"/></circle><circle r="2.8" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="3.15s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay1"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="3.15s" repeatCount="indefinite"/></circle><circle r="3.2" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="0.70s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay2"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="0.70s" repeatCount="indefinite"/></circle><circle r="2.4" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="2.10s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay2"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="2.10s" repeatCount="indefinite"/></circle><circle r="2.8" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="3.50s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay2"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="3.50s" repeatCount="indefinite"/></circle><circle r="3.2" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="1.05s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay3"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="1.05s" repeatCount="indefinite"/></circle><circle r="2.4" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="2.45s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay3"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="2.45s" repeatCount="indefinite"/></circle><circle r="2.8" opacity="0" fill="#ffe08a" filter="url(#lsSoft)"><animateMotion dur="4.2s" repeatCount="indefinite" begin="3.85s" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#lsRay3"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="4.2s" begin="3.85s" repeatCount="indefinite"/></circle>
+      <!-- distant hills -->
+      <path d="M0 700 C 200 640, 380 690, 560 660 S 900 610, 1100 650 S 1340 640, 1440 620 L1440 900 L0 900 Z" fill="#0d2a3e" opacity=".85"/>
+      <path d="M0 760 C 240 720, 520 770, 760 740 S 1180 720, 1440 735 L1440 900 L0 900 Z" fill="#0a1f2e"/>
+      <!-- house with solar panels on the roof -->
+      <g>
+        <rect x="236" y="566" width="200" height="144" fill="#1d3b52"/>
+        <path d="M266 488 L406 488 L452 566 L220 566 Z" fill="#132c3f" stroke="#0c2030" stroke-width="2"/>
+        <path d="M271.8 498.9 L295.6 498.9 L287.4 525.4 L258.7 525.4 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M297.5 498.9 L321.3 498.9 L318.3 525.4 L289.6 525.4 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M323.2 498.9 L347.0 498.9 L349.3 525.4 L320.5 525.4 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M348.8 498.9 L372.7 498.9 L380.2 525.4 L351.5 525.4 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M374.5 498.9 L398.4 498.9 L411.1 525.4 L382.4 525.4 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M257.1 528.6 L286.4 528.6 L278.2 555.1 L244.0 555.1 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M288.7 528.6 L318.0 528.6 L315.0 555.1 L280.8 555.1 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M320.2 528.6 L349.5 528.6 L351.8 555.1 L317.6 555.1 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M351.8 528.6 L381.1 528.6 L388.6 555.1 L354.4 555.1 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/><path d="M383.3 528.6 L412.6 528.6 L425.4 555.1 L391.2 555.1 Z" fill="url(#lsCell)" stroke="#9cc9ef" stroke-width=".8"/>
+        <path class="ls-panel-shine" d="M270.4 495.8 L401.6 495.8 L434.8 559.8 L237.2 559.8 Z" fill="#fff"/>
+        <rect class="ls-window" x="262" y="604" width="38" height="32" rx="3" fill="#ffd27a"/>
+        <rect class="ls-window" x="372" y="604" width="38" height="32" rx="3" fill="#ffd27a" style="animation-delay:1.2s"/>
+        <rect x="316" y="644" width="40" height="66" rx="3" fill="#0f2434"/>
+      </g>
+      <!-- inverter -->
+      <rect x="444" y="618" width="34" height="44" rx="4" fill="#24506e" stroke="#7fb4d8" stroke-width="1.2"/>
+      <circle cx="461" cy="632" r="4" fill="#5fe08f"/>
+      <!-- cable to the grid, with current flowing -->
+      <path d="M478 650 C 700 650, 900 700, 1180 690 L1236 600" fill="none" stroke="#173246" stroke-width="5" stroke-linecap="round"/>
+      <path class="ls-current" d="M478 650 C 700 650, 900 700, 1180 690 L1236 600" fill="none" stroke="#ffd166" stroke-width="3" stroke-linecap="round"/>
+      <!-- grid pylon -->
+      <g stroke="#7fb4d8" stroke-width="2.4" fill="none" opacity=".9">
+        <path d="M1236 520 L1206 760 M1236 520 L1266 760 M1214 700 L1258 700 M1220 640 L1252 640 M1226 585 L1246 585 M1206 760 L1252 640 M1266 760 L1220 640"/>
+        <path d="M1196 560 L1276 560 M1206 600 L1266 600"/>
+      </g>
+    </svg>
+  </div>
   <div class="modal" style="text-align:center;">
     <div class="brand-icon" style="margin:0 auto 14px;">☀️</div>
     <h2>SolarOps Login</h2>
@@ -219,6 +294,7 @@
     <button class="btn" style="width:100%;" onclick="handleLogin()">Log In</button>
     <div class="hint" id="loginError" style="display:none;color:var(--red);margin-top:10px;"></div>
   </div>
+  <div class="login-tagline">Sunlight <b>→</b> solar panels <b>→</b> inverter <b>→</b> the grid</div>
 </div>
 
 <div class="app" style="display:none;">
@@ -2053,6 +2129,14 @@ if('serviceWorker' in navigator){
 }
 
 /* ---------- Init ---------- */
+(function(){
+  const svg = document.querySelector('.login-scene svg');
+  if(!svg) return;
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) svg.pauseAnimations();
+  // Landscape screens: fill the screen. Portrait (phones): show the whole scene along the bottom.
+  const fit = ()=> svg.setAttribute('preserveAspectRatio', innerWidth/innerHeight < 1 ? 'xMidYMax meet' : 'xMidYMax slice');
+  fit(); addEventListener('resize', fit);
+})();
 initAuth();
 </script>
 </body>
