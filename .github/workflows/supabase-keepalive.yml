@@ -1,0 +1,36 @@
+# Keeps the Supabase free-plan project from being paused for inactivity
+# (free projects pause after about a week with no requests).
+# Runs twice a week and makes a small read request to the database.
+# The project URL and the public "anon" key are read from the app itself, so
+# there is nothing to configure here and nothing secret in this file.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 6 * * 1,4"   # Mondays and Thursdays, 06:17 UTC (09:17 Riyadh)
+  workflow_dispatch: {}      # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ping the database
+        run: |
+          set -euo pipefail
+          URL=$(grep -oP "SUPABASE_URL = '\K[^']+" solar_business_app.html)
+          KEY=$(grep -oP "SUPABASE_ANON_KEY = '\K[^']+" solar_business_app.html)
+          echo "Pinging $URL"
+          code=$(curl -s -o /tmp/out.txt -w '%{http_code}' --max-time 30 \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            "$URL/rest/v1/app_settings?select=id&limit=1")
+          echo "Database answered with HTTP $code"
+          cat /tmp/out.txt; echo
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase did not answer normally (HTTP $code). The project may be paused: open supabase.com/dashboard and click Restore project."
+            exit 1
+          fi

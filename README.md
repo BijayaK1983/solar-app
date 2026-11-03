@@ -181,6 +181,16 @@ real data is touched. `test_save_customer.py` covers adding/editing customers
 blocked by the network. See `tests/README.md` to run them. `docs/` has how-to notes
 such as running database migrations.
 
+## Keeping the database awake
+
+Supabase's free plan pauses a project after about a week with no requests, which
+makes the app show "Could not reach the SolarOps database". The GitHub Actions
+workflow `.github/workflows/supabase-keepalive.yml` makes a small read request
+twice a week (Mondays and Thursdays) to prevent this. It can also be run by hand
+from the repo's **Actions** tab ("Supabase keep-alive" → Run workflow). If a run
+fails, the project has probably been paused already: open supabase.com/dashboard
+and click **Restore project**.
+
 ## Database schema
 
 Eight Supabase/Postgres tables: `customers`, `teams`, `inventory`, `crew`,
