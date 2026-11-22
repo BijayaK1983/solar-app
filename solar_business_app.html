@@ -70,7 +70,7 @@
   nav.tabs button .ico{font-size:16px;width:20px;text-align:center;}
   nav.tabs button:hover{background:rgba(255,255,255,0.07);color:#fff;}
   nav.tabs button.active{background:var(--orange);color:#fff;font-weight:600;}
-  .main{flex:1;padding:28px 34px;max-width:1300px;}
+  .main{flex:1;padding:28px 34px;max-width:1300px;min-width:0;}
   .page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;gap:12px;flex-wrap:wrap;}
   .page-header h1{font-size:22px;margin:0 0 4px 0;}
   .page-header p{margin:0;color:var(--muted);font-size:13px;}
@@ -235,6 +235,54 @@
   @media(max-width:850px){
     .payroll-summary{grid-template-columns:1fr;gap:10px;}
   }
+
+  /* ---------- View switch (Table / Board / Calendar) ---------- */
+  .view-switch{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;}
+  .view-switch button{border:none;background:none;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--text);}
+  .view-switch button.active{background:var(--navy);color:#fff;font-weight:600;}
+
+  /* ---------- Pipeline board (Kanban) ---------- */
+  .board{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px;align-items:flex-start;}
+  .board-col{flex:0 0 240px;background:#eef2f5;border-radius:10px;padding:10px;min-height:120px;border-top:4px solid #ccc;}
+  .board-col.drag-over{background:#e1ecf5;outline:2px dashed var(--blue);}
+  .board-col h4{margin:0 0 8px 0;font-size:12.5px;display:flex;justify-content:space-between;gap:6px;}
+  .board-col h4 .cnt{background:#fff;border-radius:10px;padding:0 8px;font-size:11.5px;color:var(--muted);}
+  .board-col .col-sub{font-size:11px;color:var(--muted);margin:-4px 0 8px;}
+  .bcard{background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 10px;margin-bottom:8px;cursor:grab;font-size:12.5px;}
+  .bcard:active{cursor:grabbing;}
+  .bcard.dragging{opacity:.4;}
+  .bcard .bname{font-weight:600;font-size:13px;}
+  .bcard .bmeta{color:var(--muted);font-size:11.5px;margin-top:2px;}
+  .bcard .btags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+  .bcard select{margin-top:7px;width:100%;font-size:11.5px;padding:3px 4px;border:1px solid var(--border);border-radius:5px;color:var(--muted);}
+  .badge.stuck{background:#fbe7e7;color:var(--red);}
+  .badge.mat-ok{background:#e3f7ea;color:var(--green);}
+  .badge.mat-short{background:#fff3e0;color:var(--orange-dark);}
+
+  /* ---------- Installation calendar ---------- */
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-dow{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;text-align:center;padding:4px 0;}
+  .cal-day{background:#fafcfd;border:1px solid #eef1f3;border-radius:7px;min-height:86px;padding:5px;font-size:11.5px;}
+  .cal-day.other{opacity:.45;}
+  .cal-day.today{border-color:var(--orange);box-shadow:inset 0 0 0 1px var(--orange);}
+  .cal-day .dnum{font-weight:600;color:var(--muted);margin-bottom:3px;}
+  .cal-chip{display:block;border-radius:5px;padding:2px 5px;margin-bottom:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cal-chip.Scheduled{background:#e5f0fb;color:var(--blue);}
+  .cal-chip.InProgress{background:#fff3e0;color:var(--amber);}
+  .cal-chip.Completed{background:#e3f7ea;color:var(--green);}
+  .cal-chip.clash{outline:2px solid var(--red);}
+
+  .notice{margin:4px 0 12px;padding:9px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;}
+  .notice.warn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;}
+  .notice.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;}
+  .notice.err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;}
+  .send-text{width:100%;min-height:220px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;padding:10px;border:1px solid var(--border);border-radius:8px;}
+  @media(max-width:850px){
+    .grid.stats{grid-template-columns:1fr 1fr;}
+    .grid.two{grid-template-columns:1fr;}
+    .cal-day{min-height:60px;}
+  }
 </style>
 </head>
 <body>
@@ -301,6 +349,7 @@
         </div>
       </div>
       <div class="grid stats" id="statCards"></div>
+      <div class="grid stats" id="statCardsMonth"></div>
       <div class="grid two">
         <div class="card">
           <h2>Customers by Stage</h2>
@@ -309,6 +358,17 @@
         <div class="card">
           <h2>Needs Attention</h2>
           <ul class="timeline" id="attentionList"></ul>
+        </div>
+      </div>
+      <div class="grid two" style="margin-top:16px;">
+        <div class="card">
+          <h2>Upcoming Installations (next 7 days)</h2>
+          <ul class="timeline" id="upcomingList"></ul>
+        </div>
+        <div class="card">
+          <h2>Material Needed for Approved Jobs</h2>
+          <div class="hint" style="margin:-8px 0 10px;">Bill of Materials for every approved job not yet installed, compared with stock.</div>
+          <div id="materialNeeds"></div>
         </div>
       </div>
     </section>
@@ -320,9 +380,22 @@
           <h1>Customer Pipeline</h1>
           <p>Lead → Documents → Application → Approval → Work Order → Payment → Installation → Inspection → Grid Connected</p>
         </div>
-        <button class="btn" onclick="openCustomerModal()">+ Add Customer</button>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="view-switch" id="pipelineViewSwitch">
+            <button data-view="table" onclick="setPipelineView('table')">☰ Table</button>
+            <button data-view="board" onclick="setPipelineView('board')">▦ Board</button>
+          </div>
+          <button class="btn" onclick="openCustomerModal()">+ Add Customer</button>
+        </div>
       </div>
-      <div class="grid" style="grid-template-columns:1fr 230px;align-items:start;">
+      <div id="pipelineBoardWrap" style="display:none;">
+        <div class="toolbar">
+          <input class="search" id="boardSearch" placeholder="Search by name, city or number..." oninput="renderBoard()">
+          <div class="hint">Drag a card to another column to move the customer to that stage. On a phone, use the “Move to” list on the card.</div>
+        </div>
+        <div class="board" id="pipelineBoard"></div>
+      </div>
+      <div class="grid" id="pipelineTableWrap" style="grid-template-columns:1fr 230px;align-items:start;">
         <div class="card">
           <div class="toolbar">
             <input class="search" id="custSearch" placeholder="Search by name or city..." oninput="renderPipeline()">
@@ -356,6 +429,10 @@
           <h1>Task Assignment</h1>
           <p>Assign a customer's installation to a team and date, then track progress through to completion.</p>
         </div>
+        <div class="view-switch" id="assignViewSwitch">
+          <button data-view="list" onclick="setAssignView('list')">☰ List</button>
+          <button data-view="calendar" onclick="setAssignView('calendar')">📅 Calendar</button>
+        </div>
       </div>
       <div class="card" style="margin-bottom:18px;">
         <h2 id="assignFormTitle">New Assignment</h2>
@@ -373,19 +450,33 @@
         <div class="hint" style="margin:-6px 0 12px 0;">Select by customer, application no., or work order no. — the other two fill in automatically.</div>
         <div class="field row2">
           <div><label>Team</label>
-            <select id="assignTeam"></select>
+            <select id="assignTeam" onchange="renderAssignChecks()"></select>
           </div>
           <div><label>Installation Date</label>
-            <input id="assignDate" type="date">
+            <input id="assignDate" type="date" onchange="renderAssignChecks()">
           </div>
         </div>
         <div class="field"><label>Notes</label><input id="assignNotes" placeholder="Optional notes for this installation"></div>
+        <div id="assignChecks"></div>
         <div class="modal-actions" style="justify-content:flex-start;">
           <button class="btn" onclick="saveAssignment()">Save Assignment</button>
           <button class="btn outline" onclick="resetAssignForm()">Clear</button>
         </div>
       </div>
-      <div class="card">
+      <div class="card" id="assignCalendarWrap" style="display:none;">
+        <div class="cal-head">
+          <button class="btn small outline" onclick="shiftCalendar(-1)">‹ Prev</button>
+          <strong id="calTitle"></strong>
+          <div style="display:flex;gap:6px;">
+            <button class="btn small outline" onclick="shiftCalendar(0)">Today</button>
+            <button class="btn small outline" onclick="shiftCalendar(1)">Next ›</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="hint" style="margin-top:8px;">Click an installation to edit or reschedule it. A red outline means the same team has more than one installation that day.</div>
+        <div id="calUndated" style="margin-top:10px;"></div>
+      </div>
+      <div class="card" id="assignListWrap">
         <div class="toolbar">
           <input class="search" id="assignSearch" placeholder="Search by customer, team, city, application no. or work order no..." oninput="renderAssignments()">
         </div>
@@ -439,7 +530,7 @@
           </select>
         </div>
         <table>
-          <thead><tr><th>Item</th><th>Category</th><th>In Stock</th><th>Reorder Level</th><th>Unit Cost</th><th>Supplier</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Item</th><th>Category</th><th>In Stock</th><th title="Needed by approved jobs not yet installed (from the Bill of Materials)">Reserved</th><th title="In stock minus reserved">Free</th><th>Reorder Level</th><th>Unit Cost</th><th>Supplier</th><th>Status</th><th></th></tr></thead>
           <tbody id="invBody"></tbody>
         </table>
         <div class="empty" id="invEmpty" style="display:none;">No inventory items yet.</div>
@@ -517,6 +608,12 @@
         <div id="bomEditor"></div>
         <button class="btn" onclick="saveBOM()">Save Bill of Materials</button>
         <div class="hint" id="bomSaved" style="display:none;color:var(--green);margin-top:8px;">Saved.</div>
+      </div>
+      <div class="card" style="max-width:640px;margin-top:16px;">
+        <h2>Backup</h2>
+        <p class="hint" style="margin-top:-6px;margin-bottom:12px;">Downloads a copy of all SolarOps data (customers, teams, assignments, inventory and its history, crew, payroll, settings) to this device. Keep it somewhere safe; it changes nothing in the database.</p>
+        <button class="btn secondary" id="backupBtn" onclick="downloadBackup()">⬇ Download Full Backup</button>
+        <div class="hint" id="backupStatus" style="margin-top:8px;"></div>
       </div>
       <div class="card" style="max-width:480px;margin-top:16px;">
         <h2>This Device</h2>
@@ -702,6 +799,20 @@
     <div class="modal-actions">
       <button class="btn outline" onclick="closeModal('crewOverlay')">Cancel</button>
       <button class="btn" id="crewSaveBtn" onclick="saveCrew()">Save Crew Member</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEND JOB SHEET TO CREW MODAL -->
+<div class="overlay" id="sendOverlay">
+  <div class="modal">
+    <h2 id="sendTitle">Send Job Sheet</h2>
+    <p class="hint" style="margin-top:-6px;">Check the message, then send it to the team on WhatsApp or Telegram. You can edit the text first.</p>
+    <textarea class="send-text" id="sendText"></textarea>
+    <div id="sendButtons" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;"></div>
+    <div class="hint" id="sendCopied" style="display:none;color:var(--green);margin-top:8px;">Copied.</div>
+    <div class="modal-actions">
+      <button class="btn outline" onclick="closeModal('sendOverlay')">Close</button>
     </div>
   </div>
 </div>
@@ -893,6 +1004,8 @@ function renderEverything(){
   renderInventory();
   renderCrew();
   renderPayroll();
+  applyPipelineView();
+  applyAssignView();
 }
 
 /* ---------- Auth ---------- */
@@ -1310,7 +1423,7 @@ function renderPipeline(){
       <td><span class="badge ${prioClass}" style="cursor:pointer" onclick="cyclePriority(${c.id})" title="Click to change">${prio}</span></td>
       <td>
         <div class="progress-track">${dots}</div>
-        <div class="progress-label">${STAGES[c.stageIndex].label}</div>
+        <div class="progress-label">${STAGES[c.stageIndex].label}${stageAgeBadge(c)}</div>
       </td>
       <td>${installationCellHtml(c)}</td>
       <td style="white-space:nowrap;">
@@ -1325,6 +1438,7 @@ function renderPipeline(){
   }).join('');
   document.getElementById('custEmpty').style.display = rows.length? 'none':'block';
   renderLegend();
+  if(pipelineView==='board') renderBoard();
 }
 function installationCellHtml(c){
   const a = assignmentForCustomer(c.id);
@@ -1453,6 +1567,7 @@ function loadAssignFormForCustomer(custId){
   document.getElementById('assignDate').value = existing?.date || '';
   document.getElementById('assignNotes').value = existing?.notes || '';
   document.getElementById('assignFormTitle').textContent = existing ? `Reschedule — ${c.name}` : `New Assignment — ${c ? c.name : ''}`;
+  renderAssignChecks();
 }
 function onAssignIdentifierChange(sourceId){
   const custId = Number(document.getElementById(sourceId).value);
@@ -1483,6 +1598,7 @@ async function saveAssignment(){
   if(!custId){ alert('Please select a customer.'); return; }
   if(!teamId){ alert('Please select a team.'); return; }
   let a = assignmentForCustomer(custId);
+  const isNew = !a;
   const row = { customer_id:custId, team_id:teamId, date, notes, ...deviceStamp() };
   if(a){
     a.teamId = teamId; a.date = date; a.notes = notes;
@@ -1493,10 +1609,12 @@ async function saveAssignment(){
     const { data, error } = await sb.from('assignments').insert(row).select().single();
     if(error){ alert('Failed to save: '+error.message); return; }
     assignments.push(rowToAssignment(data));
+    a = assignments[assignments.length-1];
   }
   assignFormCustomerId = null;
-  renderAssignments(); renderTeams(); renderPipeline(); renderDashboard();
+  renderAssignments(); renderTeams(); renderPipeline(); renderDashboard(); renderInventory();
   resetAssignForm();
+  if(isNew && a && confirm('Assignment saved. Send the job sheet to the team now?')) openSendJob(a.id);
 }
 async function deleteAssignment(id){
   if(!confirm('Remove this installation assignment?')) return;
@@ -1568,12 +1686,14 @@ function renderAssignments(){
       <td><span class="badge ${statusClass}" style="cursor:pointer" onclick="cycleAssignmentStatus(${a.id})" title="Click to advance">${a.status}</span></td>
       <td style="color:var(--muted);font-size:12.5px;">${a.notes||'—'}</td>
       <td style="white-space:nowrap;">
+        <button class="btn small secondary" onclick="openSendJob(${a.id})" title="Send the job sheet to the team on WhatsApp / Telegram">📲 Send</button>
         <button class="btn small outline" onclick="openAssignForm(${a.customerId})">Edit</button>
         <button class="icon-btn" onclick="deleteAssignment(${a.id})">✕</button>
       </td>
     </tr>`;
   }).join('');
   document.getElementById('assignEmpty').style.display = rows.length? 'none':'block';
+  if(assignView==='calendar') renderCalendar();
 }
 
 /* ---------- INVENTORY ---------- */
@@ -1686,6 +1806,7 @@ function openInventoryHistory(id){
   document.getElementById('invHistoryOverlay').classList.add('open');
 }
 function renderInventory(){
+  const plan = materialPlan();
   const body = document.getElementById('invBody');
   const search = (document.getElementById('invSearch')?.value||'').toLowerCase();
   const catFilter = document.getElementById('invCategoryFilter')?.value || '';
@@ -1714,6 +1835,8 @@ function renderInventory(){
         <span class="${low?'low-flag':''}">${i.stock}</span>
         <button class="icon-btn" onclick="adjustStock(${i.id},1)" style="color:var(--green)">+</button>
       </td>
+      <td>${plan.need[i.id] ? plan.need[i.id] : '<span style="color:var(--muted);">0</span>'}</td>
+      <td>${(()=>{ const free = i.stock-(plan.need[i.id]||0); return free<0 ? `<span class="low-flag" title="Approved jobs need ${-free} more than you have">${free}</span>` : free; })()}</td>
       <td>${i.reorder}</td>
       <td>${fmtMoney(i.cost)}</td>
       <td>${i.supplier || '<span style="color:var(--muted);">—</span>'}${i.supplierPhone?`<div style="color:var(--muted);font-size:11px;">${i.supplierPhone}</div>`:''}</td>
@@ -2083,13 +2206,515 @@ function renderDashboard(){
   }).join('');
 
   const attention = [];
+  const stuckList = customers.map(c=>({c, s:stuckInfo(c)})).filter(x=>x.s).sort((a,b)=>b.s.days-a.s.days);
+  stuckList.forEach(({c,s})=>attention.push(`<li><span class="tdot" style="background:var(--red)"></span><span><strong>${esc(c.name)}</strong> — ${s.days} days at “${esc(STAGES[c.stageIndex].label)}”: ${esc(s.msg)}</span></li>`));
+  const plan = materialPlan();
+  const shortJobs = plan.jobs.filter(c=>plan.perCustomer[c.id].shortages.length);
+  if(shortJobs.length) attention.push(`<li><span class="tdot" style="background:var(--orange)"></span><span><strong>${shortJobs.length} approved job(s)</strong> are short of material — see “Material Needed” below</span></li>`);
   customers.filter(c=>(c.priority||'Medium')==='High' && c.stageIndex>=6 && c.stageIndex<8 && !assignmentForCustomer(c.id))
     .forEach(c=>attention.push(`<li><span class="tdot" style="background:var(--red)"></span><span><strong>${c.name}</strong> — High priority, ready for installation but no team assigned</span></li>`));
-  customers.filter(c=>c.stageIndex===4).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — application submitted, awaiting approval</span></li>`));
-  customers.filter(c=>c.stageIndex===6).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — work order ready, awaiting payment</span></li>`));
-  customers.filter(c=>c.stageIndex===9).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — inspection requested, follow up with electricity dept.</span></li>`));
+  customers.filter(c=>c.stageIndex===4 && !stuckInfo(c)).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — application submitted, awaiting approval</span></li>`));
+  customers.filter(c=>c.stageIndex===6 && !stuckInfo(c)).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — work order ready, awaiting payment</span></li>`));
+  customers.filter(c=>c.stageIndex===9 && !stuckInfo(c)).forEach(c=>attention.push(`<li><span class="tdot"></span><span><strong>${c.name}</strong> — inspection requested, follow up with electricity dept.</span></li>`));
   inventory.filter(i=>i.stock<=i.reorder).forEach(i=>attention.push(`<li><span class="tdot" style="background:var(--red)"></span><span><strong>${i.name}</strong> — low stock (${i.stock} left)</span></li>`));
   document.getElementById('attentionList').innerHTML = attention.length? attention.join('') : '<li class="empty">Nothing needs attention right now.</li>';
+  renderDashboardExtras(plan, stuckList.length);
+}
+
+/* =====================================================================
+   Work-management additions (ideas taken from monday.com):
+   - Board (Kanban) view of the pipeline with drag-and-drop between stages
+   - Follow-up reminders when a customer sits in one stage too long
+   - Material planning: approved jobs reserve their Bill of Materials
+   - Calendar view of installations, with team double-booking warnings
+   - Job sheet sent to the crew on WhatsApp / Telegram
+   - Full data backup download
+   None of this needs a database change: it only reads and writes the
+   existing columns.
+   ===================================================================== */
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function lsGet(key, fallback){ try { return localStorage.getItem(key) || fallback; } catch(e){ return fallback; } }
+function lsSet(key, value){ try { localStorage.setItem(key, value); } catch(e){} }
+function stageIdx(key){ return STAGES.findIndex(s=>s.key===key); }
+function daysBetween(a, b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000); }
+function localDateStr(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function openCustomerById(id){
+  const c = customers.find(x=>x.id===id);
+  if(c) openCustomerModal(JSON.parse(JSON.stringify(c)));
+}
+function prioClassOf(p){ return p==='High' ? 'low' : (p==='Low' ? 'ok' : 'pending'); }
+
+/* ---------- Follow-up reminders ----------
+   If a customer has been at a stage for at least `days`, they show up as
+   "follow-up due" (red ⏱ badge, Needs Attention list). The clock starts on the
+   date recorded for the current stage. */
+const STAGE_FOLLOWUP = {
+  lead:       {days:3,  msg:'call back and send a price quote'},
+  quoted:     {days:5,  msg:'follow up on the price quote'},
+  agreed:     {days:7,  msg:'collect the documents'},
+  docs:       {days:3,  msg:'submit the application on the portal'},
+  applied:    {days:21, msg:'check the approval status on the portal'},
+  approved:   {days:3,  msg:'create the work order'},
+  workorder:  {days:7,  msg:'collect the payment'},
+  paid:       {days:7,  msg:'assign a team and schedule the installation'},
+  installed:  {days:3,  msg:'request the inspection'},
+  inspection: {days:14, msg:'follow up with the electricity dept. for grid connection'}
+};
+function daysInStage(c){
+  const d = c.stageDates && c.stageDates[STAGES[c.stageIndex]?.key];
+  if(!d) return null;
+  return Math.max(0, daysBetween(d, todayStr()));
+}
+function stuckInfo(c){
+  const key = STAGES[c.stageIndex]?.key;
+  const rule = STAGE_FOLLOWUP[key];
+  const days = daysInStage(c);
+  if(!rule || days===null || days < rule.days) return null;
+  if(key==='paid' && assignmentForCustomer(c.id)) return null; // already scheduled
+  return { days, msg:rule.msg };
+}
+function stageAgeBadge(c){
+  const s = stuckInfo(c);
+  if(s) return ` <span class="badge stuck" title="Follow-up due: ${esc(s.msg)}">⏱ ${s.days}d</span>`;
+  const d = daysInStage(c);
+  return d===null ? '' : ` <span style="color:var(--muted);">· ${d}d</span>`;
+}
+
+/* ---------- Material planning ----------
+   Every customer from "Application Approved" up to (not including)
+   "Installation Completed", whose stock has not been deducted yet, reserves the
+   Bill of Materials for their category. Stock is handed out in installation
+   order: scheduled date first, then priority, then approval date — so the
+   earliest jobs get the panels first and later ones show as short. */
+function materialJobs(){
+  const approvedIdx = stageIdx('approved'), installedIdx = stageIdx('installed');
+  return customers.filter(c=>{
+    if(c.stageIndex < approvedIdx || c.stageIndex >= installedIdx) return false;
+    const a = assignmentForCustomer(c.id);
+    return !(a && a.stockDeducted);
+  }).sort((x,y)=>{
+    const dx = assignmentForCustomer(x.id)?.date || '9999-12-31';
+    const dy = assignmentForCustomer(y.id)?.date || '9999-12-31';
+    if(dx!==dy) return dx.localeCompare(dy);
+    const pr = (PRIORITY_RANK[x.priority]??1) - (PRIORITY_RANK[y.priority]??1);
+    if(pr) return pr;
+    const ax = x.stageDates.approved || '9999', ay = y.stageDates.approved || '9999';
+    return ax.localeCompare(ay) || x.id - y.id;
+  });
+}
+function bomLines(category){
+  return (categoryBOM[category]||[])
+    .map(l=>({ item:inventoryById(l.itemId), qty:Number(l.qty)||0 }))
+    .filter(l=>l.item && l.qty>0);
+}
+function materialPlan(){
+  const jobs = materialJobs();
+  const left = {}; inventory.forEach(i=>{ left[i.id] = Number(i.stock)||0; });
+  const need = {}; const perCustomer = {};
+  jobs.forEach(c=>{
+    const lines = bomLines(c.category);
+    const shortages = [];
+    lines.forEach(({item, qty})=>{
+      need[item.id] = (need[item.id]||0) + qty;
+      const take = Math.min(qty, Math.max(0, left[item.id]));
+      left[item.id] -= take;
+      if(take < qty) shortages.push({ item, qty: qty-take });
+    });
+    perCustomer[c.id] = { shortages, hasBOM: lines.length>0 };
+  });
+  return { jobs, need, perCustomer };
+}
+function shortageText(shortages){ return shortages.map(s=>`${s.qty} × ${s.item.name}`).join(', '); }
+
+/* ---------- Pipeline board (Kanban) ---------- */
+let pipelineView = lsGet('solarops_pipeline_view', 'table');
+function setPipelineView(view){ pipelineView = view; lsSet('solarops_pipeline_view', view); applyPipelineView(); }
+function applyPipelineView(){
+  const board = pipelineView==='board';
+  document.getElementById('pipelineBoardWrap').style.display = board ? 'block' : 'none';
+  document.getElementById('pipelineTableWrap').style.display = board ? 'none' : 'grid';
+  document.querySelectorAll('#pipelineViewSwitch button').forEach(b=>b.classList.toggle('active', b.dataset.view===pipelineView));
+  if(board) renderBoard();
+}
+function renderBoard(){
+  const el = document.getElementById('pipelineBoard');
+  if(!el) return;
+  const search = (document.getElementById('boardSearch')?.value||'').toLowerCase();
+  const plan = materialPlan();
+  const list = customers.filter(c=>`${c.name} ${c.city} ${c.phone} ${c.appNo} ${c.workOrderNo}`.toLowerCase().includes(search));
+  el.innerHTML = STAGES.map((s,i)=>{
+    const cards = list.filter(c=>c.stageIndex===i).sort((a,b)=>{
+      const pr = (PRIORITY_RANK[a.priority]??1) - (PRIORITY_RANK[b.priority]??1);
+      return pr || (daysInStage(b)??-1) - (daysInStage(a)??-1);
+    });
+    const value = cards.reduce((t,c)=>t+(Number(c.price)||0), 0);
+    return `<div class="board-col" data-stage="${i}" style="border-top-color:${STAGE_COLORS[i]};"
+        ondragover="boardDragOver(event)" ondragleave="boardDragLeave(event)" ondrop="boardDrop(event,${i})">
+      <h4><span>${i+1}. ${esc(s.label)}</span><span class="cnt">${cards.length}</span></h4>
+      <div class="col-sub">${cards.length ? fmtMoney(value) : '&nbsp;'}</div>
+      ${cards.map(c=>boardCardHtml(c, plan)).join('') || '<div class="hint" style="text-align:center;padding:10px 0;">Drop here</div>'}
+    </div>`;
+  }).join('');
+}
+function boardCardHtml(c, plan){
+  const prio = c.priority || 'Medium';
+  const stuck = stuckInfo(c);
+  const days = daysInStage(c);
+  const a = assignmentForCustomer(c.id);
+  const t = a ? teamById(a.teamId) : null;
+  const tags = [`<span class="badge ${prioClassOf(prio)}">${esc(prio)}</span>`, `<span class="badge s1">${esc(c.category)}</span>`];
+  if(stuck) tags.push(`<span class="badge stuck" title="Follow-up due: ${esc(stuck.msg)}">⏱ ${stuck.days}d</span>`);
+  else if(days!==null) tags.push(`<span class="badge" style="background:#f1f4f6;color:var(--muted);" title="Days at this stage">${days}d</span>`);
+  const mp = plan.perCustomer[c.id];
+  if(mp && mp.hasBOM){
+    tags.push(mp.shortages.length
+      ? `<span class="badge mat-short" title="Short: ${esc(shortageText(mp.shortages))}">⚠ Material short</span>`
+      : `<span class="badge mat-ok" title="Bill of Materials reserved from stock">✓ Material</span>`);
+  }
+  const moveOpts = STAGES.map((s,i)=> i===c.stageIndex ? '' : `<option value="${i}">${i+1}. ${esc(s.label)}</option>`).join('');
+  const numbers = [c.appNo, c.workOrderNo].filter(Boolean).join(' · ');
+  return `<div class="bcard" draggable="true" data-id="${c.id}" ondragstart="boardDragStart(event,${c.id})" ondragend="boardDragEnd(event)">
+    <div class="bname" style="cursor:pointer;" onclick="openCustomerById(${c.id})" title="Open customer">${esc(c.name)}</div>
+    <div class="bmeta">${esc(c.city||'—')} · ${fmtMoney(c.price)}</div>
+    ${numbers ? `<div class="bmeta">${esc(numbers)}</div>` : ''}
+    ${t ? `<div class="bmeta">🧑‍🔧 ${esc(t.name)}${a.date ? ' · '+esc(a.date) : ''} · ${esc(a.status)}</div>` : ''}
+    ${stuck ? `<div class="bmeta" style="color:var(--red);">Next: ${esc(stuck.msg)}</div>` : ''}
+    <div class="btags">${tags.join('')}</div>
+    <select aria-label="Move to stage" onchange="if(this.value!=='')moveCustomerToStage(${c.id}, Number(this.value))">
+      <option value="" selected>Move to…</option>${moveOpts}
+    </select>
+  </div>`;
+}
+let boardDragId = null;
+function boardDragStart(e, id){
+  boardDragId = id;
+  try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id)); } catch(_){}
+  e.currentTarget.classList.add('dragging');
+}
+function boardDragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.board-col.drag-over').forEach(x=>x.classList.remove('drag-over'));
+}
+function boardDragOver(e){ e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function boardDragLeave(e){ if(!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('drag-over'); }
+function boardDrop(e, idx){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  let id = boardDragId;
+  if(!id){ try { id = Number(e.dataTransfer.getData('text/plain')); } catch(_){} }
+  boardDragId = null;
+  if(id) moveCustomerToStage(id, idx);
+}
+/* Moves a customer to any stage (board drag or "Move to" list). Writes to the
+   database first and rolls back on failure. Moving to "Work Order Created"
+   without a work order number runs the normal Create WO flow instead. */
+let stageMoveBusy = false;
+async function moveCustomerToStage(id, idx){
+  const c = customers.find(x=>x.id===id);
+  if(!c || c.stageIndex===idx || stageMoveBusy){ renderBoard(); return; }
+  if(idx===WORKORDER_STAGE_INDEX && c.stageIndex < idx && !(c.workOrderNo||'').trim()){
+    await createWorkOrder(id);
+    renderBoard();
+    return;
+  }
+  if(idx < c.stageIndex && !confirm(`Move ${c.name} back to “${STAGES[idx].label}”? Dates already recorded stay in the timeline.`)){
+    renderBoard(); return;
+  }
+  const prevStage = c.stageIndex, prevDates = { ...c.stageDates };
+  c.stageIndex = idx;
+  const key = STAGES[idx].key;
+  if(!c.stageDates[key]) c.stageDates = { ...c.stageDates, [key]: todayStr() };
+  stageMoveBusy = true;
+  let error = null;
+  try {
+    ({ error } = await withAuthRetry(()=>sb.from('customers')
+      .update({ stage_index:c.stageIndex, stage_dates:c.stageDates, ...deviceStamp() }).eq('id', id)));
+  } catch(e){ error = { message: (e && e.message) || String(e) }; }
+  stageMoveBusy = false;
+  if(error){
+    c.stageIndex = prevStage; c.stageDates = prevDates;
+    alert('Could not move the customer: '+error.message);
+  }
+  renderPipeline(); renderDashboard(); renderInventory(); populateAssignCustomerSelect();
+  if(!error && idx > prevStage) afterStageMove(c);
+}
+/* Simple "when stage changes, then…" automations. */
+function afterStageMove(c){
+  const key = STAGES[c.stageIndex].key;
+  if(key==='approved'){
+    const mp = materialPlan().perCustomer[c.id];
+    if(mp && mp.shortages.length) alert(`${c.name} is approved. Material is short for this job: ${shortageText(mp.shortages)}.\nReorder from the Inventory tab.`);
+  }
+  if(key==='paid' && !assignmentForCustomer(c.id)){
+    if(confirm(`Payment received from ${c.name}. Assign a team and installation date now?`)) goAssign(c.id);
+  }
+}
+
+/* ---------- Assignment form checks ---------- */
+function renderAssignChecks(){
+  const el = document.getElementById('assignChecks');
+  if(!el) return;
+  const custId = Number(document.getElementById('assignCustomer')?.value);
+  const c = customers.find(x=>x.id===custId);
+  if(!c){ el.innerHTML = ''; return; }
+  const teamId = Number(document.getElementById('assignTeam').value) || null;
+  const date = document.getElementById('assignDate').value;
+  const existing = assignmentForCustomer(custId);
+  const out = [];
+  if(teamId && date){
+    const clash = assignments.filter(a=>a.teamId===teamId && a.date===date && a.customerId!==custId && a.status!=='Completed');
+    if(clash.length){
+      const names = clash.map(a=>customers.find(x=>x.id===a.customerId)?.name || 'another customer').join(', ');
+      out.push(`<div class="notice warn">⚠ ${esc(teamById(teamId)?.name || 'This team')} already has ${clash.length} installation(s) on ${esc(date)}: ${esc(names)}.</div>`);
+    }
+  }
+  if(!(existing && existing.stockDeducted)){
+    const lines = bomLines(c.category);
+    if(!lines.length){
+      out.push(`<div class="notice warn">No Bill of Materials set for ${esc(c.category)} systems. Add one in Settings so stock is checked and deducted.</div>`);
+    } else {
+      const plan = materialPlan();
+      let shortages;
+      if(plan.perCustomer[c.id]) shortages = plan.perCustomer[c.id].shortages;
+      else shortages = lines.map(({item, qty})=>{
+        // Not approved yet: compare with what is left after approved jobs take their share.
+        const free = Math.max(0, item.stock - (plan.need[item.id]||0));
+        return qty > free ? { item, qty: qty-free } : null;
+      }).filter(Boolean);
+      out.push(shortages.length
+        ? `<div class="notice err">Material short for this ${esc(c.category)} job: ${esc(shortageText(shortages))}. Reorder from Inventory before the installation date.</div>`
+        : `<div class="notice ok">✓ All material for this ${esc(c.category)} job is in stock.</div>`);
+    }
+  }
+  if(c.stageIndex < stageIdx('paid')){
+    out.push(`<div class="notice warn">Payment is not recorded yet (current stage: ${esc(STAGES[c.stageIndex].label)}).</div>`);
+  }
+  el.innerHTML = out.join('');
+}
+
+/* ---------- Installation calendar ---------- */
+let assignView = lsGet('solarops_assign_view', 'list');
+let calMonth = (()=>{ const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+function setAssignView(view){ assignView = view; lsSet('solarops_assign_view', view); applyAssignView(); }
+function applyAssignView(){
+  const cal = assignView==='calendar';
+  document.getElementById('assignCalendarWrap').style.display = cal ? 'block' : 'none';
+  document.getElementById('assignListWrap').style.display = cal ? 'none' : 'block';
+  document.querySelectorAll('#assignViewSwitch button').forEach(b=>b.classList.toggle('active', b.dataset.view===assignView));
+  if(cal) renderCalendar();
+}
+function shiftCalendar(n){
+  if(n===0){ const d = new Date(); calMonth = new Date(d.getFullYear(), d.getMonth(), 1); }
+  else calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+n, 1);
+  renderCalendar();
+}
+function renderCalendar(){
+  const grid = document.getElementById('calGrid');
+  if(!grid) return;
+  document.getElementById('calTitle').textContent = calMonth.toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+  const startDow = (calMonth.getDay()+6) % 7; // weeks start on Monday
+  const daysInMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 0).getDate();
+  const cells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+  const today = todayStr();
+  const byDate = {};
+  assignments.forEach(a=>{ if(a.date) (byDate[a.date] = byDate[a.date] || []).push(a); });
+  let html = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0; i<cells; i++){
+    const d = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1 - startDow + i);
+    const ds = localDateStr(d);
+    const list = byDate[ds] || [];
+    const perTeam = {};
+    list.forEach(a=>{ if(a.status!=='Completed') perTeam[a.teamId] = (perTeam[a.teamId]||0) + 1; });
+    const chips = list.map(a=>{
+      const c = customers.find(x=>x.id===a.customerId);
+      const t = teamById(a.teamId);
+      const clash = a.status!=='Completed' && perTeam[a.teamId] > 1;
+      const title = `${t ? t.name : 'No team'} — ${c ? c.name : 'Unknown'}${c && c.city ? ', '+c.city : ''} (${a.status})${clash ? ' — team double-booked' : ''}`;
+      return `<span class="cal-chip ${a.status.replace(/\s/g,'')} ${clash ? 'clash' : ''}" title="${esc(title)}" onclick="calOpen(${a.customerId})">${esc(t ? t.name : '?')} · ${esc(c ? c.name : '?')}</span>`;
+    }).join('');
+    html += `<div class="cal-day ${d.getMonth()!==calMonth.getMonth() ? 'other' : ''} ${ds===today ? 'today' : ''}"><div class="dnum">${d.getDate()}</div>${chips}</div>`;
+  }
+  grid.innerHTML = html;
+  const undated = assignments.filter(a=>!a.date && a.status!=='Completed');
+  document.getElementById('calUndated').innerHTML = undated.length
+    ? `<div class="hint" style="margin-bottom:4px;"><strong>No date yet:</strong></div>` + undated.map(a=>{
+        const c = customers.find(x=>x.id===a.customerId), t = teamById(a.teamId);
+        return `<span class="cal-chip Scheduled" style="display:inline-block;margin-right:6px;" onclick="calOpen(${a.customerId})">${esc(t ? t.name : '?')} · ${esc(c ? c.name : '?')}</span>`;
+      }).join('')
+    : '';
+}
+function calOpen(custId){
+  openAssignForm(custId);
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* ---------- Job sheet to crew (WhatsApp / Telegram) ----------
+   Opens WhatsApp or Telegram with the message filled in; nothing is sent
+   until the user presses send there. No bot token is stored in this page. */
+function waNumber(phone){
+  let d = String(phone||'').replace(/\D/g, '');
+  if(d.length===11 && d.startsWith('0')) d = d.slice(1);
+  if(d.length===10) d = '91' + d; // Indian mobile without country code
+  return d;
+}
+function jobSheetText(a){
+  const c = customers.find(x=>x.id===a.customerId) || {};
+  const t = teamById(a.teamId);
+  const lines = [
+    '☀️ SolarOps — Installation Job',
+    `Date: ${a.date || 'to be confirmed'}`,
+    `Team: ${t ? t.name : '—'}${t ? ' ('+teamMemberSummary(t)+')' : ''}`,
+    '',
+    `Customer: ${c.name || '—'}`,
+    `Phone: ${c.phone || '—'}`,
+    `Address: ${c.city || '—'}`
+  ];
+  if(c.city) lines.push(`Map: https://maps.google.com/?q=${encodeURIComponent(c.city)}`);
+  lines.push(`System: ${c.category || '—'}`);
+  if(c.appNo) lines.push(`Application No.: ${c.appNo}`);
+  if(c.workOrderNo) lines.push(`Work Order No.: ${c.workOrderNo}`);
+  const bom = bomLines(c.category);
+  if(bom.length){ lines.push('', 'Material to carry:'); bom.forEach(l=>lines.push(`• ${l.qty} × ${l.item.name}`)); }
+  if(a.notes) lines.push('', `Notes: ${a.notes}`);
+  lines.push('', 'Please reply "Done" with photos when the installation is complete.');
+  return lines.join('\n');
+}
+function openSendJob(assignId){
+  const a = assignments.find(x=>x.id===assignId);
+  if(!a) return;
+  const c = customers.find(x=>x.id===a.customerId);
+  const t = teamById(a.teamId);
+  document.getElementById('sendTitle').textContent = `Send Job Sheet — ${c ? c.name : ''}`;
+  document.getElementById('sendText').value = jobSheetText(a);
+  document.getElementById('sendCopied').style.display = 'none';
+  const buttons = [];
+  if(t && waNumber(t.electricianPhone)) buttons.push(`<button class="btn" onclick="sendVia('wa','${waNumber(t.electricianPhone)}')">WhatsApp ${esc(t.electrician || 'electrician')}</button>`);
+  if(t && waNumber(t.helperPhone)) buttons.push(`<button class="btn" onclick="sendVia('wa','${waNumber(t.helperPhone)}')">WhatsApp ${esc(t.helper || 'helper')}</button>`);
+  buttons.push(`<button class="btn secondary" onclick="sendVia('wa','')">WhatsApp (choose chat)</button>`);
+  buttons.push(`<button class="btn secondary" onclick="sendVia('tg','')">Telegram</button>`);
+  buttons.push(`<button class="btn outline" onclick="copySendText()">Copy text</button>`);
+  if(t && !waNumber(t.electricianPhone) && !waNumber(t.helperPhone)) buttons.push(`<div class="hint" style="width:100%;">Add team phone numbers in the Teams tab to message them directly.</div>`);
+  document.getElementById('sendButtons').innerHTML = buttons.join('');
+  document.getElementById('sendOverlay').classList.add('open');
+}
+function sendVia(kind, number){
+  const text = document.getElementById('sendText').value;
+  const url = kind==='tg'
+    ? `https://t.me/share/url?url=${encodeURIComponent(text)}`
+    : `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'noopener');
+}
+async function copySendText(){
+  const box = document.getElementById('sendText');
+  try { await navigator.clipboard.writeText(box.value); }
+  catch(e){ box.select(); try { document.execCommand('copy'); } catch(_){} }
+  document.getElementById('sendCopied').style.display = 'block';
+}
+
+/* ---------- Dashboard extras ---------- */
+function renderDashboardExtras(plan, followUps){
+  const month = todayStr().slice(0,7);
+  const kw = c=>parseInt(c.category, 10) || 0;
+  const installed = customers.filter(c=>(c.stageDates.installed||'').startsWith(month));
+  const connected = customers.filter(c=>(c.stageDates.connected||'').startsWith(month));
+  const agreedIdx = stageIdx('agreed'), paidIdx = stageIdx('paid');
+  const unpaid = customers.filter(c=>c.stageIndex>=agreedIdx && c.stageIndex<paidIdx);
+  const durations = customers.filter(c=>c.stageIndex===STAGES.length-1 && c.stageDates.lead && c.stageDates.connected)
+    .map(c=>daysBetween(c.stageDates.lead, c.stageDates.connected)).filter(d=>d>=0);
+  const avg = durations.length ? Math.round(durations.reduce((a,b)=>a+b,0)/durations.length) : null;
+  document.getElementById('statCardsMonth').innerHTML = `
+    <div class="card stat-card">
+      <div class="label">Installed This Month</div>
+      <div class="value">${installed.length}</div>
+      <div class="sub">${installed.reduce((s,c)=>s+kw(c),0)} kW · ${connected.length} grid-connected</div>
+    </div>
+    <div class="card stat-card">
+      <div class="label">Agreed, Not Yet Paid</div>
+      <div class="value">${fmtMoney(unpaid.reduce((s,c)=>s+(Number(c.price)||0),0))}</div>
+      <div class="sub">${unpaid.length} customer(s) from agreement to payment</div>
+    </div>
+    <div class="card stat-card">
+      <div class="label">Follow-ups Due</div>
+      <div class="value" style="color:${followUps ? 'var(--red)' : 'var(--text)'}">${followUps}</div>
+      <div class="sub">Customers waiting too long at one stage</div>
+    </div>
+    <div class="card stat-card">
+      <div class="label">Avg. Lead → Grid</div>
+      <div class="value">${avg===null ? '—' : avg+' days'}</div>
+      <div class="sub">${durations.length ? `Across ${durations.length} connected customer(s)` : 'No grid-connected customers with dates yet'}</div>
+    </div>`;
+
+  const today = todayStr();
+  const upcoming = assignments.filter(a=>a.date && a.status!=='Completed' && a.date>=today && daysBetween(today, a.date)<=7)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const overdue = assignments.filter(a=>a.date && a.status!=='Completed' && a.date<today);
+  const item = (a, late)=>{
+    const c = customers.find(x=>x.id===a.customerId), t = teamById(a.teamId);
+    const mp = c && plan.perCustomer[c.id];
+    const mat = mp && mp.hasBOM ? (mp.shortages.length ? ` <span class="badge mat-short" title="${esc(shortageText(mp.shortages))}">⚠ Material short</span>` : ' <span class="badge mat-ok">✓ Material</span>') : '';
+    return `<li><span class="tdot" style="${late ? 'background:var(--red)' : ''}"></span><span><strong>${esc(c ? c.name : 'Unknown')}</strong> — ${esc(t ? t.name : 'no team')}, ${esc(a.date)}${late ? ' <span class="badge stuck">overdue</span>' : ''} <span class="badge ${a.status==='In Progress' ? 'pending' : 's1'}">${esc(a.status)}</span>${mat}
+      <button class="icon-btn" style="color:var(--blue)" title="Send job sheet" onclick="openSendJob(${a.id})">📲</button></span></li>`;
+  };
+  document.getElementById('upcomingList').innerHTML = (overdue.map(a=>item(a, true)).join('') + upcoming.map(a=>item(a, false)).join(''))
+    || '<li class="empty">No installations scheduled in the next 7 days.</li>';
+
+  const el = document.getElementById('materialNeeds');
+  const ids = Object.keys(plan.need).map(Number);
+  const noBom = plan.jobs.filter(c=>!plan.perCustomer[c.id].hasBOM);
+  let html = '';
+  if(!plan.jobs.length){
+    html = '<div class="empty">No approved jobs waiting for installation.</div>';
+  } else if(!ids.length){
+    html = `<div class="empty">${plan.jobs.length} approved job(s) waiting. Set a Bill of Materials in Settings to see what they need.</div>`;
+  } else {
+    html = `<table><thead><tr><th>Item</th><th>Needed</th><th>In Stock</th><th>Short</th><th></th></tr></thead><tbody>` +
+      ids.map(id=>{
+        const it = inventoryById(id); const needQty = plan.need[id]; const short = Math.max(0, needQty - it.stock);
+        return `<tr><td>${esc(it.name)}</td><td>${needQty}</td><td>${it.stock}</td>
+          <td>${short ? `<span class="low-flag">${short}</span>` : '<span class="badge ok">OK</span>'}</td>
+          <td>${short ? (it.onOrderQty ? `<span class="badge pending">On order: ${it.onOrderQty}</span>` : `<button class="btn small secondary" onclick="reorderItem(${it.id})">Reorder</button>`) : ''}</td></tr>`;
+      }).join('') + '</tbody></table>';
+    html += `<div class="hint" style="margin-top:8px;">${plan.jobs.length} approved job(s) waiting for installation.</div>`;
+  }
+  if(noBom.length && ids.length) html += `<div class="hint" style="color:var(--orange-dark);">No Bill of Materials for: ${esc([...new Set(noBom.map(c=>c.category))].join(', '))}. Add it in Settings.</div>`;
+  el.innerHTML = html;
+}
+
+/* ---------- Full data backup (download to this device) ---------- */
+const BACKUP_TABLES = ['customers','teams','assignments','inventory','inventory_movements','crew','payroll_records','app_settings'];
+async function fetchAllRows(table){
+  const page = 1000, rows = [];
+  for(let from=0; ; from+=page){
+    const { data, error } = await sb.from(table).select('*').order('id').range(from, from+page-1);
+    if(error) throw new Error(`${table}: ${error.message}`);
+    rows.push(...(data||[]));
+    if(!data || data.length < page) return rows;
+  }
+}
+async function downloadBackup(){
+  const btn = document.getElementById('backupBtn');
+  const status = document.getElementById('backupStatus');
+  btn.disabled = true; status.style.color = 'var(--muted)'; status.textContent = 'Downloading all data…';
+  try {
+    const out = { app:'SolarOps', format:1, exported_at:new Date().toISOString(), exported_by_device:getDeviceName(), tables:{} };
+    for(const t of BACKUP_TABLES) out.tables[t] = await fetchAllRows(t);
+    const name = `solarops-backup-${todayStr()}.json`;
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type:'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob); link.download = name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(link.href), 10000);
+    status.style.color = 'var(--green)';
+    status.textContent = `Saved ${name}: ` + BACKUP_TABLES.map(t=>`${out.tables[t].length} ${t.replace(/_/g,' ')}`).join(', ') + '.';
+  } catch(e){
+    console.error('backup failed', e);
+    status.style.color = 'var(--red)';
+    status.textContent = 'Backup failed: '+(e && e.message ? e.message : e)+'. Check the internet connection and try again.';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 /* ---------- PWA install (offline support) ---------- */

@@ -1,7 +1,7 @@
 // Bump CACHE_NAME on every deploy that changes solar_business_app.html.
 // The activate handler deletes every cache whose name doesn't match, so changing
 // this string is what forces existing installs to drop their old copy.
-const CACHE_NAME = 'solarops-cache-v3';
+const CACHE_NAME = 'solarops-cache-v4';
 const ASSETS = [
   './solar_business_app.html',
   './manifest.json',

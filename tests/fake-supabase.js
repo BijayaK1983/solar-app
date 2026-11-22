@@ -15,7 +15,7 @@
       delete(){ st.op='delete'; return b; },
       eq(c,v){ st.filters.push(r=>r[c]==v); return b; },
       ilike(c,p){ const re=new RegExp('^'+p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/%/g,'.*')+'$','i'); st.filters.push(r=>re.test(r[c]||'')); return b; },
-      order(){ return b; }, limit(){ return b; },
+      order(){ return b; }, limit(){ return b; }, range(){ return b; },
       single(){ st.single=true; return b; }, maybeSingle(){ st.maybe=true; return b; },
       then(res, rej){ return new Promise(r=>r(run())).then(res, rej); }
     };
