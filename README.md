@@ -150,6 +150,32 @@ The `<script>` block is organized top-to-bottom as:
   two fields, and logs the movement. There's no history of past orders beyond what shows up
   in the movement log.
 
+## Work-management features
+
+- **Board view, follow-ups, material planning, calendar, job sheets, backup**
+  (`/* Work-management additions */` block near the end of the script). None of it
+  needs a database change; it reads and writes existing columns only.
+  - *Board*: `setPipelineView('table'|'board')` (remembered per browser in
+    `localStorage`). Dragging a card, or the card's "Move to" list, calls
+    `moveCustomerToStage()`: writes first, rolls back on error, asks before moving
+    backwards, and runs `createWorkOrder()` instead when dropped on "Work Order Created"
+    without a WO number. `afterStageMove()` holds the small "when stage changes"
+    automations (shortage alert on approval, offer to assign a team on payment).
+  - *Follow-ups*: `STAGE_FOLLOWUP` sets how many days a customer may sit at each stage
+    before showing as "follow-up due" (red ⏱ badge, Needs Attention). Edit the numbers
+    there to change the rules.
+  - *Material planning*: `materialPlan()` reserves each category's BOM for every customer
+    from "Application Approved" up to "Installation Completed" whose stock isn't deducted
+    yet, handing out stock by scheduled date → priority → approval date. Feeds the
+    Inventory "Reserved / Free" columns, board badges, the assignment form check and the
+    dashboard "Material Needed" table. Nothing is written; the real deduction still
+    happens in `applyBOMForCategory()` on completion.
+  - *Calendar*: `setAssignView('list'|'calendar')`; red outline = same team, same day.
+  - *Job sheet*: `openSendJob()` builds a message (customer, map link, materials) and
+    opens WhatsApp (`wa.me`) or Telegram share. No bot token lives in this public page.
+  - *Backup*: Settings → Download Full Backup saves every table as one JSON file
+    (`downloadBackup()`, pages through 1000 rows at a time).
+
 ## Local development
 
 ```bash
@@ -178,7 +204,8 @@ Whoever's SSH key is set up for this repo can push directly — see
 real data is touched. `test_save_customer.py` covers adding/editing customers
 (expired login, network failure, duplicate numbers, double submit);
 `test_login.py` covers the login screen when the Supabase library or the database is
-blocked by the network. See `tests/README.md` to run them. `docs/` has how-to notes
+blocked by the network. `test_work_management.py` covers the board, follow-ups, material
+planning, calendar, job sheets and backup. See `tests/README.md` to run them. `docs/` has how-to notes
 such as running database migrations.
 
 ## Keeping the database awake

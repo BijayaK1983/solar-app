@@ -37,3 +37,5 @@ python3 test_crew_codes.py
 (falls back to a second download site), both blocked (clear message instead of a frozen
 screen), and the database unreachable (clear message).
 `app_under_test.html` is generated on each run and can be deleted.
+
+`test_work_management.py` checks the pipeline board (drag/move, rollback, WO on drop), follow-up reminders, material reservation and shortages, the installation calendar and double-booking warnings, the WhatsApp/Telegram job sheet, and the full backup download.
